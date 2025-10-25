@@ -1,0 +1,38 @@
+/* Makes scrollbars dark and less obtrusive */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2d3748; /* bg-gray-700 */
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4a5568; /* bg-gray-600 */
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #718096; /* bg-gray-500 */
+}
+
+/* Custom style for the file input button */
+input[type="file"]::file-selector-button {
+    margin-right: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    border: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background-color: #4f46e5; /* bg-indigo-600 */
+    color: white;
+    transition: background-color 300ms;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background-color: #4338ca; /* bg-indigo-700 */
+    cursor: pointer;
+}
+

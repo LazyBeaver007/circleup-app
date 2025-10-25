@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CircleUp - Collaborative Productivity</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="h-full text-gray-200">
+    <!-- Main App Container -->
+    <div id="app-container" class="h-full">
+
+        <!-- Login View (Visible by default) -->
+        <div id="login-view" class="flex flex-col justify-center items-center h-full p-6">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-white mb-3">Welcome to CircleUp</h1>
+                <p class="text-lg text-gray-400 mb-8">Your collaborative space for tracking progress and staying accountable.</p>
+                <button id="login-button" class="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg text-lg hover:bg-indigo-700 transition duration-300">
+                    Sign in with Google
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard View (Hidden by default) -->
+        <div id="dashboard-view" class="hidden h-full flex-col">
+            <!-- Header -->
+            <header class="bg-gray-800 shadow-md w-full">
+                <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+                    <div class="text-2xl font-bold text-white">CircleUp</div>
+                    <div class="flex items-center gap-4">
+                        <span id="user-display-name" class="text-sm text-gray-300"></span>
+                        <button id="logout-button" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+                            Logout
+                        </button>
+                    </div>
+                </nav>
+            </header>
+
+            <!-- Main Content Grid -->
+            <main class="flex-1 container mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 h-full overflow-hidden">
+                
+                <!-- Left Column: My Progress -->
+                <section class="flex flex-col bg-gray-800 rounded-lg shadow-lg p-6 overflow-hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-white">My Progress</h2>
+                        <button id="add-goal-button" class="bg-indigo-600 w-10 h-10 flex justify-center items-center text-white font-bold text-2xl rounded-full hover:bg-indigo-700 transition duration-300">+</button>
+                    </div>
+                    <div id="goals-list" class="space-y-4 overflow-y-auto pr-2">
+                        <!-- Goals will be dynamically injected here -->
+                    </div>
+                </section>
+                
+                <!-- Middle Column: Circle Feed -->
+                <section class="flex flex-col bg-gray-800 rounded-lg shadow-lg p-6 overflow-hidden lg:col-span-1">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-white">Circle Feed</h2>
+                        <button id="check-in-button" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition duration-300">
+                            Check-In
+                        </button>
+                    </div>
+                    <div id="feed-list" class="space-y-4 overflow-y-auto pr-2">
+                        <!-- Feed posts will be dynamically injected here -->
+                    </div>
+                </section>
+                
+                <!-- Right Column: Circles & Members -->
+                <section class="flex flex-col bg-gray-800 rounded-lg shadow-lg p-6 overflow-hidden">
+                    
+                    <!-- My Info -->
+                    <div class="mb-4 pb-4 border-b border-gray-700">
+                        <div class="flex justify-between items-center mb-1">
+                            <h2 class="text-xl font-semibold text-white">My Info</h2>
+                            <button id="edit-alias-button" class="text-sm text-indigo-400 hover:text-indigo-300">Edit</button>
+                        </div>
+                        <label class="text-sm text-gray-400">Share your User ID to be invited:</label>
+                        <p id="my-user-id" class="text-sm text-indigo-300 bg-gray-900 rounded-md p-2 mt-1 break-words">Not logged in</p>
+                    </div>
+
+                    <!-- Circle Controls -->
+                    <div class="flex gap-4 mb-4">
+                        <button id="create-circle-button" class="w-1/2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+                            Create
+                        </button>
+                        <button id="join-circle-button" class="w-1/2 bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300">
+                            Join
+                        </button>
+                    </div>
+
+                    <!-- My Circles List -->
+                    <div class="mb-4 pb-4 border-b border-gray-700">
+                        <h2 class="text-xl font-semibold text-white mb-3">My Circles</h2>
+                        <div id="circles-list" class="space-y-2 overflow-y-auto pr-2 max-h-40">
+                            <!-- Circles will be dynamically injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Circle Members List -->
+                    <div>
+                        <h2 class="text-xl font-semibold text-white mb-3">Circle Members</h2>
+                        <div id="circle-members-list" class="space-y-2 overflow-y-auto pr-2">
+                            <!-- Members will be dynamically injected here -->
+                        </div>
+                    </div>
+
+                </section>
+            </main>
+        </div>
+
+        <!-- Global Modal -->
+        <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-6">
+            <div id="modal-content" class="bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+                <!-- Modal content will be injected here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Link to our JavaScript file -->
+    <script type="module" src="script.js"></script>
+</body>
+</html>
+
