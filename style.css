@@ -36,3 +36,30 @@ input[type="file"]::file-selector-button:hover {
     cursor: pointer;
 }
 
+/* Styles for Accountability Status dots */
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    flex-shrink: 0; /* Prevents dot from shrinking */
+}
+
+.status-safe {
+    background-color: #22c55e; /* green-500 */
+}
+
+.status-missed {
+    background-color: #ef4444; /* red-500 */
+}
+
+/* UI TWEAK: Better alignment for info button */
+.show-circle-id-button {
+    height: 40px; /* Match button height */
+    width: 40px; /* Make it square */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+

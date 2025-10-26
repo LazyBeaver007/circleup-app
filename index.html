@@ -50,37 +50,39 @@
             </header>
 
             <!-- Main Content Grid -->
-            <main class="flex-1 container mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 h-full overflow-hidden">
+            <!-- THIS IS THE FIX: Changed from lg:grid-cols-3 to lg:grid-cols-4 -->
+            <main class="flex-1 container mx-auto p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 overflow-hidden">
                 
                 <!-- Left Column: My Progress -->
-                <section class="flex flex-col bg-gray-800 rounded-lg shadow-lg p-6 overflow-hidden">
+                <section class="flex flex-col bg-gray-800 rounded-lg shadow-lg p-6 overflow-hidden min-h-0">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-semibold text-white">My Progress</h2>
-                        <button id="add-goal-button" class="bg-indigo-600 w-10 h-10 flex justify-center items-center text-white font-bold text-2xl rounded-full hover:bg-indigo-700 transition duration-300">+</button>
+                        <button id="add-goal-button" class="bg-indigo-600 w-10 h-10 flex justify-center items-center text-white font-bold text-2xl rounded-full hover:bg-indigo-700 transition duration-300 flex-shrink-0">+</button>
                     </div>
-                    <div id="goals-list" class="space-y-4 overflow-y-auto pr-2">
+                    <div id="goals-list" class="space-y-4 overflow-y-auto pr-1">
                         <!-- Goals will be dynamically injected here -->
                     </div>
                 </section>
                 
                 <!-- Middle Column: Circle Feed -->
-                <section class="flex flex-col bg-gray-800 rounded-lg shadow-lg p-6 overflow-hidden lg:col-span-1">
+                <!-- UI TWEAK: Changed to col-span-1 -->
+                <section class="flex flex-col bg-gray-800 rounded-lg shadow-lg p-6 overflow-hidden min-h-0 lg:col-span-1">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-semibold text-white">Circle Feed</h2>
-                        <button id="check-in-button" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition duration-300">
+                        <button id="check-in-button" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition duration-300 flex-shrink-0">
                             Check-In
                         </button>
                     </div>
-                    <div id="feed-list" class="space-y-4 overflow-y-auto pr-2">
+                    <div id="feed-list" class="space-y-4 overflow-y-auto pr-1">
                         <!-- Feed posts will be dynamically injected here -->
                     </div>
                 </section>
                 
-                <!-- Right Column: Circles & Members -->
-                <section class="flex flex-col bg-gray-800 rounded-lg shadow-lg p-6 overflow-hidden">
+                <!-- 3rd Column: Circles & Members -->
+                <section class="flex flex-col bg-gray-800 rounded-lg shadow-lg p-6 overflow-y-auto min-h-0 space-y-4">
                     
                     <!-- My Info -->
-                    <div class="mb-4 pb-4 border-b border-gray-700">
+                    <div class="pb-2">
                         <div class="flex justify-between items-center mb-1">
                             <h2 class="text-xl font-semibold text-white">My Info</h2>
                             <button id="edit-alias-button" class="text-sm text-indigo-400 hover:text-indigo-300">Edit</button>
@@ -90,7 +92,7 @@
                     </div>
 
                     <!-- Circle Controls -->
-                    <div class="flex gap-4 mb-4">
+                    <div class="flex gap-4 pt-2 border-t border-gray-700">
                         <button id="create-circle-button" class="w-1/2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
                             Create
                         </button>
@@ -100,21 +102,32 @@
                     </div>
 
                     <!-- My Circles List -->
-                    <div class="mb-4 pb-4 border-b border-gray-700">
+                    <div class="pt-2 border-t border-gray-700">
                         <h2 class="text-xl font-semibold text-white mb-3">My Circles</h2>
-                        <div id="circles-list" class="space-y-2 overflow-y-auto pr-2 max-h-40">
+                        <div id="circles-list" class="space-y-2 overflow-y-auto pr-1 max-h-40">
                             <!-- Circles will be dynamically injected here -->
                         </div>
                     </div>
 
                     <!-- Circle Members List -->
-                    <div>
+                    <div class="pt-2 border-t border-gray-700">
                         <h2 class="text-xl font-semibold text-white mb-3">Circle Members</h2>
-                        <div id="circle-members-list" class="space-y-2 overflow-y-auto pr-2">
+                        <div id="circle-members-list" class="space-y-2 overflow-y-auto pr-1 max-h-40">
                             <!-- Members will be dynamically injected here -->
                         </div>
                     </div>
 
+                    <!-- THIS SECTION WAS MOVED -->
+
+                </section>
+
+                <!-- 4th Column: Accountability -->
+                <section class="flex flex-col bg-gray-800 rounded-lg shadow-lg p-6 overflow-y-auto min-h-0 space-y-4">
+                    <h2 class="text-xl font-semibold text-white mb-3">Accountability Status</h2>
+                    <div id="accountability-status-list" class="space-y-2 overflow-y-auto pr-1">
+                        <p class="text-sm text-gray-400">Loading status...</p>
+                        <!-- Status will be injected here -->
+                    </div>
                 </section>
             </main>
         </div>

@@ -25,7 +25,9 @@ import {
     setDoc,
     arrayUnion,
     getDocs,
-    where
+    where,
+    orderBy,
+    limit
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // ---------------------------------------------------
@@ -44,7 +46,7 @@ const firebaseConfig = {
 let app, auth, db, analytics;
 let currentUserId = null;
 let userEmail = null;
-let userDisplayName = null; // NEW: For alias
+let userDisplayName = null;
 let goalsUnsubscribe = null;
 let feedUnsubscribe = null;
 let userGoals = [];
@@ -73,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const dashboardView = document.getElementById("dashboard-view");
     const loginButton = document.getElementById("login-button");
     const logoutButton = document.getElementById("logout-button");
-    const userDisplayNameElement = document.getElementById("user-display-name"); // UPDATED
+    const userDisplayNameElement = document.getElementById("user-display-name");
     const myUserIdElement = document.getElementById("my-user-id");
     const modal = document.getElementById("modal");
     const modalContent = document.getElementById("modal-content");
@@ -84,8 +86,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const circlesList = document.getElementById("circles-list");
     const createCircleButton = document.getElementById("create-circle-button");
     const joinCircleButton = document.getElementById("join-circle-button");
-    const editAliasButton = document.getElementById("edit-alias-button"); // NEW
-    const circleMembersList = document.getElementById("circle-members-list"); // NEW
+    const editAliasButton = document.getElementById("edit-alias-button");
+    const circleMembersList = document.getElementById("circle-members-list");
+    const accountabilityStatusList = document.getElementById("accountability-status-list"); // NEW
 
     // --- Modal & Utility Functions ---
     function showModal(contentHTML) {
@@ -166,7 +169,8 @@ document.addEventListener("DOMContentLoaded", () => {
             goalsList.innerHTML = "";
             feedList.innerHTML = "";
             circlesList.innerHTML = "";
-            circleMembersList.innerHTML = ""; // NEW
+            circleMembersList.innerHTML = "";
+            accountabilityStatusList.innerHTML = ""; // NEW
             userGoals = [];
             userCircles = [];
         }
@@ -193,7 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const personalCircleData = { id: circleRef.id, name: "Personal" };
                 await setDoc(userRef, {
                     email: user.email,
-                    displayName: userDisplayName, // NEW
+                    displayName: userDisplayName,
                     createdAt: serverTimestamp(),
                     circles: [personalCircleData]
                 });
@@ -209,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Existing user
             const userData = userSnap.data();
             userCircles = userData.circles || [];
-            userDisplayName = userData.displayName || user.email.split('@')[0]; // NEW
+            userDisplayName = userData.displayName || user.email.split('@')[0];
             
             if (userCircles.length > 0) {
                 currentCircleId = userCircles[0].id; 
@@ -218,15 +222,16 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
-        userDisplayNameElement.textContent = userDisplayName; // NEW
+        userDisplayNameElement.textContent = userDisplayName;
         renderCircleList();
         
         if (currentCircleId) {
             loadCircleFeed();
-            loadCircleMembers(); // NEW
+            loadCircleMembers(); 
         } else {
             feedList.innerHTML = `<p class="text-gray-400 text-sm">Join or create a circle to see a feed.</p>`;
             circleMembersList.innerHTML = `<p class="text-gray-400 text-sm">No circle selected.</p>`;
+            accountabilityStatusList.innerHTML = `<p class="text-gray-400 text-sm">Select a circle.</p>`;
         }
     }
 
@@ -271,8 +276,6 @@ document.addEventListener("DOMContentLoaded", () => {
             userDisplayName = newName;
             userDisplayNameElement.textContent = userDisplayName;
             closeModal();
-            // We may need to re-render the feed to show the new name,
-            // but for now, new posts will use it.
         } catch (error) {
             console.error("Error updating alias:", error);
             showMessageModal("Could not save alias.", "Error");
@@ -332,7 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Switched to circle:", currentCircleId);
         renderCircleList(); 
         loadCircleFeed(); 
-        loadCircleMembers(); // NEW
+        loadCircleMembers();
     }
 
     function showCircleInfoModal(id, name) {
@@ -498,11 +501,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- NEW: Member List Functions ---
+    // --- Member List & Accountability Functions ---
     async function loadCircleMembers() {
         if (!currentCircleId) return;
         
         circleMembersList.innerHTML = `<p class="text-gray-400 text-sm">Loading members...</p>`;
+        accountabilityStatusList.innerHTML = `<p class="text-gray-400 text-sm">Loading status...</p>`; // NEW
 
         try {
             const circleRef = doc(db, `circles/${currentCircleId}`);
@@ -515,6 +519,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const memberIds = circleSnap.data().members || [];
             if (memberIds.length === 0) {
                  circleMembersList.innerHTML = `<p class="text-gray-400 text-sm">No members found.</p>`;
+                 accountabilityStatusList.innerHTML = `<p class="text-gray-400 text-sm">No members.</p>`; // NEW
                  return;
             }
 
@@ -532,10 +537,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             renderCircleMembers(members);
+            loadAccountabilityStatus(members); // NEW
 
         } catch (error) {
             console.error("Error loading circle members:", error);
             circleMembersList.innerHTML = `<p class="text-red-400 text-sm">Error loading members.</p>`;
+            accountabilityStatusList.innerHTML = `<p class="text-red-400 text-sm">Error loading status.</p>`; // NEW
         }
     }
 
@@ -554,6 +561,109 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             circleMembersList.appendChild(memberElement);
         });
+    }
+
+    // NEW: Accountability Logic
+    async function loadAccountabilityStatus(members) {
+        accountabilityStatusList.innerHTML = "";
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        
+        let membersSafe = [];
+        let membersMissed = [];
+
+        try {
+            const statusPromises = members.map(async (member) => {
+                const feedRef = collection(db, `circles/${currentCircleId}/feed`);
+                
+                // --- THIS IS THE FIX ---
+                // 1. Remove orderBy and limit, as they require an index.
+                const q = query(
+                    feedRef, 
+                    where("userId", "==", member.id)
+                );
+                
+                const postSnap = await getDocs(q);
+                
+                if (postSnap.empty) {
+                    return { ...member, status: "missed" }; // Never posted
+                } else {
+                    // 2. We must now sort in JS to find the most recent post
+                    let posts = [];
+                    postSnap.forEach(doc => {
+                        posts.push(doc.data());
+                    });
+
+                    posts.sort((a, b) => {
+                        const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+                        const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+                        return timeB - timeA; // Newest first
+                    });
+                    
+                    const lastPost = posts[0]; // Get the most recent one
+                    // 3. Check if timestamp exists before calling .toDate()
+                    if (!lastPost.timestamp) {
+                        return { ...member, status: "missed" };
+                    }
+
+                    const postTime = lastPost.timestamp.toDate();
+                    if (postTime < oneDayAgo) {
+                        return { ...member, status: "missed" }; // Posted, but not in last 24h
+                    } else {
+                        return { ...member, status: "safe" }; // Posted recently
+                    }
+                }
+            });
+            // --- END OF FIX ---
+
+            const memberStatuses = await Promise.all(statusPromises);
+
+            memberStatuses.forEach(member => {
+                if (member.status === 'safe') {
+                    membersSafe.push(member);
+                } else {
+                    membersMissed.push(member);
+                }
+            });
+            
+            accountabilityStatusList.innerHTML = ""; // Clear "Loading..."
+
+            // Render the lists
+            if (membersSafe.length > 0) {
+                const safeHeader = document.createElement('h4');
+                safeHeader.className = "text-sm font-semibold text-green-400";
+                safeHeader.textContent = "Up-to-Date";
+                accountabilityStatusList.appendChild(safeHeader);
+                
+                membersSafe.forEach(member => {
+                    const el = document.createElement('div');
+                    el.className = "flex items-center bg-gray-700 p-2 rounded-lg";
+                    el.innerHTML = `<span class="status-dot status-safe"></span><span class="text-sm text-gray-200">${member.name}</span>`;
+                    accountabilityStatusList.appendChild(el);
+                });
+            }
+
+            if (membersMissed.length > 0) {
+                const missedHeader = document.createElement('h4');
+                missedHeader.className = `text-sm font-semibold text-red-400 ${membersSafe.length > 0 ? 'mt-3' : ''}`;
+                missedHeader.textContent = "Missed Update";
+                accountabilityStatusList.appendChild(missedHeader);
+
+                membersMissed.forEach(member => {
+                    const el = document.createElement('div');
+                    el.className = "flex items-center bg-gray-700 p-2 rounded-lg";
+                    el.innerHTML = `<span class="status-dot status-missed"></span><span class="text-sm text-gray-200">${member.name}</span>`;
+                    accountabilityStatusList.appendChild(el);
+                });
+            }
+            
+            if (membersSafe.length === 0 && membersMissed.length === 0) {
+                 accountabilityStatusList.innerHTML = `<p class="text-gray-400 text-sm">No members in this circle.</p>`;
+            }
+
+        } catch (error) {
+            console.error("Error loading accountability status:", error);
+            accountabilityStatusList.innerHTML = `<p class="text-red-400 text-sm">Error loading status.</p>`;
+        }
     }
 
     async function showMemberGoalsModal(memberId, memberName) {
@@ -910,7 +1020,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const feedRef = collection(db, `circles/${currentCircleId}/feed`);
             await addDoc(feedRef, {
                 userId: currentUserId,
-                userName: userDisplayName, // NEW
+                userName: userDisplayName, 
                 userEmail: userEmail,
                 goalTitle: selectedGoal.title,
                 updateText: `updated ${selectedGoal.title} to ${newValue}/${selectedGoal.total}`,
@@ -922,6 +1032,9 @@ document.addEventListener("DOMContentLoaded", () => {
             
             closeModal();
             showMessageModal("Your update has been posted to the circle feed!", "Success");
+            
+            // NEW: Manually refresh accountability status after posting
+            loadCircleMembers(); 
 
         } catch (error) {
             console.error("Error submitting check-in:", error);
@@ -975,7 +1088,7 @@ document.addEventListener("DOMContentLoaded", () => {
             postElement.className = "bg-gray-700 p-4 rounded-lg";
             
             const time = item.timestamp ? new Date(item.timestamp.toMillis()).toLocaleString() : "just now";
-            const name = item.userName || item.userEmail.split('@')[0]; // NEW: Use display name
+            const name = item.userName || item.userEmail.split('@')[0];
             
             let mediaHTML = '';
             if (item.imageURL) {
@@ -1048,7 +1161,7 @@ document.addEventListener("DOMContentLoaded", () => {
     checkInButton.addEventListener("click", showCheckInModal);
     createCircleButton.addEventListener("click", showCreateCircleModal);
     joinCircleButton.addEventListener("click", showJoinCircleModal);
-    editAliasButton.addEventListener("click", showAliasModal); // NEW
+    editAliasButton.addEventListener("click", showAliasModal);
 
     if (!auth) {
         showMessageModal("Firebase is not initialized. The app cannot start.", "Fatal Error");
