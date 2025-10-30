@@ -88,8 +88,118 @@ document.addEventListener("DOMContentLoaded", () => {
     const joinCircleButton = document.getElementById("join-circle-button");
     const editAliasButton = document.getElementById("edit-alias-button");
     const circleMembersList = document.getElementById("circle-members-list");
-    const accountabilityStatusList = document.getElementById("accountability-status-list"); // NEW
+    const accountabilityStatusList = document.getElementById("accountability-status-list"); 
 
+    // --- Pomodoro DOM References ---
+    const timerDisplay = document.getElementById("timer-display");
+    const pomodoroButton = document.getElementById("pomodoro-button");
+    const shortBreakButton = document.getElementById("short-break-button");
+    const longBreakButton = document.getElementById("long-break-button");
+    const startTimerButton = document.getElementById("start-timer-button");
+    const resetTimerButton = document.getElementById("reset-timer-button");
+    const timerButtons = [pomodoroButton, shortBreakButton, longBreakButton];
+
+    // --- NEW: YouTube Player DOM References ---
+    const ytPlayer = document.getElementById("yt-player");
+    const ytLinkInput = document.getElementById("yt-link-input");
+    const ytLoadButton = document.getElementById("yt-load-button");
+
+    // --- Pomodoro State ---
+    let timerInterval = null;
+    let timerMode = 'pomodoro';
+    let timerSeconds = 1500; // 25 minutes
+    let isRunning = false;
+
+    // --- Pomodoro Functions ---
+    function updateTimerDisplay() {
+        const minutes = Math.floor(timerSeconds / 60);
+        const seconds = timerSeconds % 60;
+        timerDisplay.textContent = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    }
+
+    function setTimer(mode) {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
+        isRunning = false;
+        startTimerButton.textContent = "Start";
+        timerMode = mode;
+
+        // Update active button style
+        timerButtons.forEach(btn => btn.classList.remove('timer-button-active'));
+        if (mode === 'pomodoro') {
+            timerSeconds = 1500;
+            pomodoroButton.classList.add('timer-button-active');
+        } else if (mode === 'short') {
+            timerSeconds = 300;
+            shortBreakButton.classList.add('timer-button-active');
+        } else if (mode === 'long') {
+            timerSeconds = 900;
+            longBreakButton.classList.add('timer-button-active');
+        }
+        updateTimerDisplay();
+    }
+
+    function startStopTimer() {
+        if (isRunning) {
+            // Pause the timer
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isRunning = false;
+            startTimerButton.textContent = "Start";
+        } else {
+            // Start the timer
+            isRunning = true;
+            startTimerButton.textContent = "Pause";
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                updateTimerDisplay();
+
+                if (timerSeconds < 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    isRunning = false;
+                    showMessageModal("Time's up! Take your break.", "Pomodoro Finished");
+                    setTimer(timerMode); // Reset to current mode
+                }
+            }, 1000);
+        }
+    }
+
+    function resetTimer() {
+        setTimer(timerMode); // Reset to the current active mode
+    }
+
+    // --- NEW: YouTube Player Functions ---
+    function parseYoutubeId(url) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    async function handleLoadYoutubeVideo() {
+        const url = ytLinkInput.value.trim();
+        const videoId = parseYoutubeId(url);
+
+        if (videoId) {
+            ytPlayer.src = `https://www.youtube.com/embed/${videoId}`;
+            ytLinkInput.value = ""; // Clear input
+            
+            // Save this ID to Firebase for persistence
+            if (currentUserId) {
+                try {
+                    const userRef = doc(db, `users/${currentUserId}`);
+                    await updateDoc(userRef, { lastYtVideoId: videoId });
+                    console.log("Saved new video ID to profile:", videoId);
+                } catch (error) {
+                    console.error("Error saving video ID:", error);
+                }
+            }
+        } else {
+            showMessageModal("Invalid YouTube URL. Please use a valid 'watch' or 'youtu.be' link.", "Error");
+        }
+    }
+    
     // --- Modal & Utility Functions ---
     function showModal(contentHTML) {
         modalContent.innerHTML = contentHTML;
@@ -103,9 +213,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showMessageModal(message, title = "Notification") {
         const modalHTML = `
-            <h3 class="text-xl font-semibold mb-4">${title}</h3>
-            <p class="text-gray-300 mb-6">${message}</p>
-            <button id="modal-close-button" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+            <h3 class="text-xl font-semibold mb-4 text-gray-900">${title}</h3>
+            <p class="text-gray-600 mb-6">${message}</p>
+            <button id="modal-close-button" class="w-full bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
                 Close
             </button>
         `;
@@ -170,9 +280,14 @@ document.addEventListener("DOMContentLoaded", () => {
             feedList.innerHTML = "";
             circlesList.innerHTML = "";
             circleMembersList.innerHTML = "";
-            accountabilityStatusList.innerHTML = ""; // NEW
+            accountabilityStatusList.innerHTML = ""; 
             userGoals = [];
             userCircles = [];
+
+            // Reset timer on logout
+            resetTimer();
+            // Reset player to default
+            ytPlayer.src = "https://www.youtube.com/embed/jfKfPfyJRdk";
         }
     });
 
@@ -180,6 +295,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function loadUserProfile(user) {
         const userRef = doc(db, `users/${user.uid}`);
         const userSnap = await getDoc(userRef);
+        let lastVideoId = 'jfKfPfyJRdk'; // Default lofi video
 
         if (!userSnap.exists()) {
             // First time login
@@ -199,7 +315,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     email: user.email,
                     displayName: userDisplayName,
                     createdAt: serverTimestamp(),
-                    circles: [personalCircleData]
+                    circles: [personalCircleData],
+                    lastYtVideoId: lastVideoId // Save default video ID
                 });
                 
                 userCircles = [personalCircleData];
@@ -214,6 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const userData = userSnap.data();
             userCircles = userData.circles || [];
             userDisplayName = userData.displayName || user.email.split('@')[0];
+            lastVideoId = userData.lastYtVideoId || lastVideoId; // Load saved ID or default
             
             if (userCircles.length > 0) {
                 currentCircleId = userCircles[0].id; 
@@ -222,6 +340,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
+        // Load the user's preferred video
+        ytPlayer.src = `https://www.youtube.com/embed/${lastVideoId}`;
+        
         userDisplayNameElement.textContent = userDisplayName;
         renderCircleList();
         
@@ -229,25 +350,25 @@ document.addEventListener("DOMContentLoaded", () => {
             loadCircleFeed();
             loadCircleMembers(); 
         } else {
-            feedList.innerHTML = `<p class="text-gray-400 text-sm">Join or create a circle to see a feed.</p>`;
-            circleMembersList.innerHTML = `<p class="text-gray-400 text-sm">No circle selected.</p>`;
-            accountabilityStatusList.innerHTML = `<p class="text-gray-400 text-sm">Select a circle.</p>`;
+            feedList.innerHTML = `<p class="text-gray-500 text-sm">Join or create a circle to see a feed.</p>`;
+            circleMembersList.innerHTML = `<p class="text-gray-500 text-sm">No circle selected.</p>`;
+            accountabilityStatusList.innerHTML = `<p class="text-gray-500 text-sm">Select a circle.</p>`;
         }
     }
 
     function showAliasModal() {
         const modalHTML = `
             <form id="alias-form">
-                <h3 class="text-xl font-semibold mb-6">Set Your Alias</h3>
+                <h3 class="text-xl font-semibold mb-6 text-gray-900">Set Your Alias</h3>
                 <div class="mb-4">
-                    <label for="display-name" class="block text-sm font-medium text-gray-300 mb-2">Display Name</label>
-                    <input type="text" id="display-name" name="name" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required value="${userDisplayName || ''}">
+                    <label for="display-name" class="block text-sm font-medium text-gray-600 mb-2">Display Name</label>
+                    <input type="text" id="display-name" name="name" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required value="${userDisplayName || ''}">
                 </div>
                 <div class="flex gap-4">
-                    <button type="button" id="modal-cancel-button" class="w-1/2 bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300">
+                    <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
                         Cancel
                     </button>
-                    <button type="submit" id="modal-submit-button" class="w-1/2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+                    <button type="submit" id="modal-submit-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
                         Save
                     </button>
                 </div>
@@ -287,27 +408,27 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderCircleList() {
         circlesList.innerHTML = "";
         if (userCircles.length === 0) {
-            circlesList.innerHTML = `<p class="text-gray-400 text-sm">You are not in any circles.</p>`;
+            circlesList.innerHTML = `<p class="text-gray-500 text-sm">You are not in any circles.</p>`;
             return;
         }
 
         userCircles.forEach(circle => {
             const isActive = circle.id === currentCircleId;
             const buttonClass = isActive
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600";
+                ? "bg-cyan-500 text-white shadow-md"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200";
             
             const circleElement = document.createElement("div");
             circleElement.className = "flex items-center gap-2";
 
             const circleButton = document.createElement("button");
-            circleButton.className = `flex-1 text-left font-semibold py-2 px-4 rounded-lg transition duration-300 ${buttonClass}`;
+            circleButton.className = `animated-button flex-1 text-left font-semibold py-2 px-4 rounded-lg transition duration-300 ${buttonClass}`;
             circleButton.textContent = circle.name;
             circleButton.dataset.circleId = circle.id;
             circleButton.addEventListener("click", () => handleSwitchCircle(circle.id));
             
             const infoButton = document.createElement("button");
-            infoButton.className = "show-circle-id-button flex-shrink-0 bg-gray-600 text-white font-semibold py-2 px-3 rounded-lg hover:bg-gray-500 transition duration-300";
+            infoButton.className = "show-circle-id-button"; // Class from style.css
             infoButton.innerHTML = `
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -340,14 +461,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showCircleInfoModal(id, name) {
         const modalHTML = `
-            <h3 class="text-xl font-semibold mb-4">Circle Info: ${name}</h3>
-            <p class="text-sm text-gray-300 mb-2">Share this ID with friends so they can join this circle:</p>
-            <input type="text" readonly id="circle-id-share" value="${id}" class="w-full bg-gray-900 border border-gray-700 text-indigo-300 rounded-lg px-3 py-2 select-all mb-4">
+            <h3 class="text-xl font-semibold mb-4 text-gray-900">Circle Info: ${name}</h3>
+            <p class="text-sm text-gray-600 mb-2">Share this ID with friends so they can join this circle:</p>
+            <input type="text" readonly id="circle-id-share" value="${id}" class="w-full bg-gray-100 border border-gray-300 text-cyan-700 font-medium rounded-lg px-3 py-2 select-all mb-4">
             <div class="flex gap-4">
-                <button type="button" id="modal-cancel-button" class="w-1/2 bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300">
+                <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
                     Close
                 </button>
-                <button type="button" id="copy-circle-id-button" class="w-1/2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+                <button type="button" id="copy-circle-id-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
                     Copy ID
                 </button>
             </div>
@@ -370,16 +491,16 @@ document.addEventListener("DOMContentLoaded", () => {
     function showCreateCircleModal() {
         const modalHTML = `
             <form id="create-circle-form">
-                <h3 class="text-xl font-semibold mb-6">Create New Circle</h3>
+                <h3 class="text-xl font-semibold mb-6 text-gray-900">Create New Circle</h3>
                 <div class="mb-4">
-                    <label for="circle-name" class="block text-sm font-medium text-gray-300 mb-2">Circle Name</label>
-                    <input type="text" id="circle-name" name="name" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required placeholder="e.g., DSA Grinders">
+                    <label for="circle-name" class="block text-sm font-medium text-gray-600 mb-2">Circle Name</label>
+                    <input type="text" id="circle-name" name="name" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required placeholder="e.g., DSA Grinders">
                 </div>
                 <div class="flex gap-4">
-                    <button type="button" id="modal-cancel-button" class="w-1/2 bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300">
+                    <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
                         Cancel
                     </button>
-                    <button type="submit" id="modal-submit-button" class="w-1/2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+                    <button type="submit" id="modal-submit-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
                         Create
                     </button>
                 </div>
@@ -431,16 +552,16 @@ document.addEventListener("DOMContentLoaded", () => {
     function showJoinCircleModal() {
         const modalHTML = `
             <form id="join-circle-form">
-                <h3 class="text-xl font-semibold mb-6">Join a Circle</h3>
+                <h3 class="text-xl font-semibold mb-6 text-gray-900">Join a Circle</h3>
                 <div class="mb-4">
-                    <label for="circle-id" class="block text-sm font-medium text-gray-300 mb-2">Circle ID</label>
-                    <input type="text" id="circle-id" name="id" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required placeholder="Paste Circle ID here">
+                    <label for="circle-id" class="block text-sm font-medium text-gray-600 mb-2">Circle ID</label>
+                    <input type="text" id="circle-id" name="id" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required placeholder="Paste Circle ID here">
                 </div>
                 <div class="flex gap-4">
-                    <button type="button" id="modal-cancel-button" class="w-1/2 bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300">
+                    <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
                         Cancel
                     </button>
-                    <button type="submit" id="modal-submit-button" class="w-1/2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+                    <button type="submit" id="modal-submit-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
                         Join
                     </button>
                 </div>
@@ -505,8 +626,8 @@ document.addEventListener("DOMContentLoaded", () => {
     async function loadCircleMembers() {
         if (!currentCircleId) return;
         
-        circleMembersList.innerHTML = `<p class="text-gray-400 text-sm">Loading members...</p>`;
-        accountabilityStatusList.innerHTML = `<p class="text-gray-400 text-sm">Loading status...</p>`; // NEW
+        circleMembersList.innerHTML = `<p class="text-gray-500 text-sm">Loading members...</p>`;
+        accountabilityStatusList.innerHTML = `<p class="text-gray-500 text-sm">Loading status...</p>`; 
 
         try {
             const circleRef = doc(db, `circles/${currentCircleId}`);
@@ -518,8 +639,8 @@ document.addEventListener("DOMContentLoaded", () => {
             
             const memberIds = circleSnap.data().members || [];
             if (memberIds.length === 0) {
-                 circleMembersList.innerHTML = `<p class="text-gray-400 text-sm">No members found.</p>`;
-                 accountabilityStatusList.innerHTML = `<p class="text-gray-400 text-sm">No members.</p>`; // NEW
+                 circleMembersList.innerHTML = `<p class="text-gray-500 text-sm">No members found.</p>`;
+                 accountabilityStatusList.innerHTML = `<p class="text-gray-500 text-sm">No members.</p>`; 
                  return;
             }
 
@@ -537,12 +658,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             renderCircleMembers(members);
-            loadAccountabilityStatus(members); // NEW
+            loadAccountabilityStatus(members); 
 
         } catch (error) {
             console.error("Error loading circle members:", error);
-            circleMembersList.innerHTML = `<p class="text-red-400 text-sm">Error loading members.</p>`;
-            accountabilityStatusList.innerHTML = `<p class="text-red-400 text-sm">Error loading status.</p>`; // NEW
+            circleMembersList.innerHTML = `<p class="text-red-500 text-sm">Error loading members.</p>`;
+            accountabilityStatusList.innerHTML = `<p class="text-red-500 text-sm">Error loading status.</p>`; 
         }
     }
 
@@ -551,7 +672,7 @@ document.addEventListener("DOMContentLoaded", () => {
         members.forEach(member => {
             const isMe = member.id === currentUserId;
             const memberElement = document.createElement("button");
-            memberElement.className = "w-full text-left bg-gray-700 text-gray-200 py-2 px-3 rounded-lg hover:bg-gray-600 transition duration-300";
+            memberElement.className = "animated-button w-full text-left bg-gray-100 text-gray-700 font-medium py-2 px-3 rounded-lg hover:bg-gray-200 transition duration-300";
             memberElement.textContent = `${member.name} ${isMe ? "(You)" : ""}`;
             memberElement.dataset.memberId = member.id;
             memberElement.dataset.memberName = member.name;
@@ -563,7 +684,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // NEW: Accountability Logic
     async function loadAccountabilityStatus(members) {
         accountabilityStatusList.innerHTML = "";
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -575,8 +695,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const statusPromises = members.map(async (member) => {
                 const feedRef = collection(db, `circles/${currentCircleId}/feed`);
                 
-                // --- THIS IS THE FIX ---
-                // 1. Remove orderBy and limit, as they require an index.
                 const q = query(
                     feedRef, 
                     where("userId", "==", member.id)
@@ -587,7 +705,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (postSnap.empty) {
                     return { ...member, status: "missed" }; // Never posted
                 } else {
-                    // 2. We must now sort in JS to find the most recent post
                     let posts = [];
                     postSnap.forEach(doc => {
                         posts.push(doc.data());
@@ -599,8 +716,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         return timeB - timeA; // Newest first
                     });
                     
-                    const lastPost = posts[0]; // Get the most recent one
-                    // 3. Check if timestamp exists before calling .toDate()
+                    const lastPost = posts[0]; 
                     if (!lastPost.timestamp) {
                         return { ...member, status: "missed" };
                     }
@@ -613,7 +729,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
             });
-            // --- END OF FIX ---
 
             const memberStatuses = await Promise.all(statusPromises);
 
@@ -630,49 +745,57 @@ document.addEventListener("DOMContentLoaded", () => {
             // Render the lists
             if (membersSafe.length > 0) {
                 const safeHeader = document.createElement('h4');
-                safeHeader.className = "text-sm font-semibold text-green-400";
+                safeHeader.className = "text-sm font-semibold text-green-600 mb-2";
                 safeHeader.textContent = "Up-to-Date";
                 accountabilityStatusList.appendChild(safeHeader);
                 
                 membersSafe.forEach(member => {
                     const el = document.createElement('div');
-                    el.className = "flex items-center bg-gray-700 p-2 rounded-lg";
-                    el.innerHTML = `<span class="status-dot status-safe"></span><span class="text-sm text-gray-200">${member.name}</span>`;
+                    el.className = "status-item status-safe";
+                    el.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                        ${member.name}`;
                     accountabilityStatusList.appendChild(el);
                 });
             }
 
             if (membersMissed.length > 0) {
                 const missedHeader = document.createElement('h4');
-                missedHeader.className = `text-sm font-semibold text-red-400 ${membersSafe.length > 0 ? 'mt-3' : ''}`;
+                missedHeader.className = `text-sm font-semibold text-red-600 mb-2 ${membersSafe.length > 0 ? 'mt-4' : ''}`;
                 missedHeader.textContent = "Missed Update";
                 accountabilityStatusList.appendChild(missedHeader);
 
                 membersMissed.forEach(member => {
                     const el = document.createElement('div');
-                    el.className = "flex items-center bg-gray-700 p-2 rounded-lg";
-                    el.innerHTML = `<span class="status-dot status-missed"></span><span class="text-sm text-gray-200">${member.name}</span>`;
+                    el.className = "status-item status-missed";
+                    el.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                        ${member.name}`;
                     accountabilityStatusList.appendChild(el);
                 });
             }
             
             if (membersSafe.length === 0 && membersMissed.length === 0) {
-                 accountabilityStatusList.innerHTML = `<p class="text-gray-400 text-sm">No members in this circle.</p>`;
+                 accountabilityStatusList.innerHTML = `<p class="text-gray-500 text-sm">No members in this circle.</p>`;
             }
 
         } catch (error) {
             console.error("Error loading accountability status:", error);
-            accountabilityStatusList.innerHTML = `<p class="text-red-400 text-sm">Error loading status.</p>`;
+            accountabilityStatusList.innerHTML = `<p class="text-red-500 text-sm">Error loading status.</p>`;
         }
     }
 
     async function showMemberGoalsModal(memberId, memberName) {
         const modalHTML = `
-            <h3 class="text-xl font-semibold mb-4">Goals for ${memberName}</h3>
+            <h3 class="text-xl font-semibold mb-4 text-gray-900">Goals for ${memberName}</h3>
             <div id="member-goals-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-                <p class="text-gray-400">Loading goals...</p>
+                <p class="text-gray-500">Loading goals...</p>
             </div>
-            <button id="modal-close-button" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+            <button id="modal-close-button" class="animated-button mt-6 w-full bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
                 Close
             </button>
         `;
@@ -685,7 +808,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const goalsSnap = await getDocs(goalsRef);
 
             if (goalsSnap.empty) {
-                memberGoalsList.innerHTML = `<p class="text-gray-400">${memberName} hasn't added any goals yet.</p>`;
+                memberGoalsList.innerHTML = `<p class="text-gray-500">${memberName} hasn't added any goals yet.</p>`;
                 return;
             }
             
@@ -696,19 +819,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 const total = Number(goal.total);
                 const percentage = total > 0 ? (current / total) * 100 : 0;
                 
-                let progressBarColor = "bg-indigo-500";
+                let progressBarColor = "bg-cyan-500";
                 if (percentage >= 100) progressBarColor = "bg-green-500";
                 else if (percentage >= 50) progressBarColor = "bg-yellow-500";
 
                 const goalElement = document.createElement("div");
-                goalElement.className = "bg-gray-700 p-3 rounded-lg";
+                goalElement.className = "bg-gray-100 p-3 rounded-lg";
                 goalElement.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <span class="font-semibold">${goal.title}</span>
-                        <span class="text-gray-400">${current} / ${total}</span>
+                        <span class="font-semibold text-gray-800">${goal.title}</span>
+                        <span class="text-gray-500">${current} / ${total}</span>
                     </div>
-                    <div class="w-full bg-gray-600 rounded-full h-2 mt-2">
-                        <div class="${progressBarColor} h-2 rounded-full" style="width: ${percentage}%"></div>
+                    <div class="progress-bar-bg mt-2">
+                        <div class="progress-bar-fill ${progressBarColor}" style="width: ${percentage}%"></div>
                     </div>
                 `;
                 memberGoalsList.appendChild(goalElement);
@@ -716,7 +839,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (error) {
             console.error("Error fetching member goals:", error);
-            memberGoalsList.innerHTML = `<p class="text-red-400">Could not load goals.</p>`;
+            memberGoalsList.innerHTML = `<p class="text-red-500">Could not load goals.</p>`;
         }
     }
 
@@ -744,7 +867,7 @@ document.addEventListener("DOMContentLoaded", () => {
         goalsList.innerHTML = "";
         
         if (goals.length === 0) {
-            goalsList.innerHTML = `<p class="text-gray-400 text-sm">You haven't added any goals yet. Click the "+" button to get started.</p>`;
+            goalsList.innerHTML = `<p class="text-gray-500 text-sm">You haven't added any goals yet. Click the "+" button to get started.</p>`;
             return;
         }
         
@@ -753,23 +876,23 @@ document.addEventListener("DOMContentLoaded", () => {
             const total = Number(goal.total);
             const percentage = total > 0 ? (current / total) * 100 : 0;
             
-            let progressBarColor = "bg-indigo-500";
+            let progressBarColor = "bg-cyan-500";
             if (percentage >= 100) progressBarColor = "bg-green-500";
             else if (percentage >= 75) progressBarColor = "bg-blue-500";
             else if (percentage >= 50) progressBarColor = "bg-yellow-500";
             else if (percentage >= 25) progressBarColor = "bg-orange-500";
 
             const goalElement = document.createElement("div");
-            goalElement.className = "bg-gray-700 p-4 rounded-lg";
+            goalElement.className = "bg-gray-50 p-4 rounded-xl border border-gray-200";
             goalElement.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <span class="font-semibold">${goal.title}</span>
-                    <span class="text-gray-400">${current} / ${total}</span>
+                    <span class="font-semibold text-gray-800">${goal.title}</span>
+                    <span class="text-sm font-medium text-gray-500">${current} / ${total}</span>
                 </div>
-                <div class="w-full bg-gray-600 rounded-full h-2.5 mt-2">
-                    <div class="${progressBarColor} h-2.5 rounded-full" style="width: ${percentage}%"></div>
+                <div class="progress-bar-bg mt-2">
+                    <div class="progress-bar-fill ${progressBarColor}" style="width: ${percentage}%"></div>
                 </div>
-                <button data-id="${goal.id}" class="delete-goal-button text-xs text-red-400 hover:text-red-300 mt-2">
+                <button data-id="${goal.id}" class="delete-goal-button text-xs text-red-500 hover:text-red-700 font-medium mt-2">
                     Delete
                 </button>
             `;
@@ -797,29 +920,29 @@ document.addEventListener("DOMContentLoaded", () => {
     function showAddGoalModal() {
         const modalHTML = `
             <form id="add-goal-form">
-                <h3 class="text-xl font-semibold mb-6">Add New Goal</h3>
+                <h3 class="text-xl font-semibold mb-6 text-gray-900">Add New Goal</h3>
                 
                 <div class="mb-4">
-                    <label for="goal-title" class="block text-sm font-medium text-gray-300 mb-2">Goal Title</label>
-                    <input type="text" id="goal-title" name="title" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required placeholder="e.g., Leetcode Questions">
+                    <label for="goal-title" class="block text-sm font-medium text-gray-600 mb-2">Goal Title</label>
+                    <input type="text" id="goal-title" name="title" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required placeholder="e.g., Leetcode Questions">
                 </div>
                 
                 <div class="flex gap-4 mb-6">
                     <div class="w-1/2">
-                        <label for="goal-current" class="block text-sm font-medium text-gray-300 mb-2">Current</label>
-                        <input type="number" id="goal-current" name="current" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required value="0" min="0">
+                        <label for="goal-current" class="block text-sm font-medium text-gray-600 mb-2">Current</label>
+                        <input type="number" id="goal-current" name="current" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required value="0" min="0">
                     </div>
                     <div class="w-1/2">
-                        <label for="goal-total" class="block text-sm font-medium text-gray-300 mb-2">Total</label>
-                        <input type="number" id="goal-total" name="total" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required placeholder="e.g., 150" min="1">
+                        <label for="goal-total" class="block text-sm font-medium text-gray-600 mb-2">Total</LAbel>
+                        <input type="number" id="goal-total" name="total" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required placeholder="e.g., 150" min="1">
                     </div>
                 </div>
                 
                 <div class="flex gap-4">
-                    <button type="button" id="modal-cancel-button" class="w-1/2 bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300">
+                    <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
                         Cancel
                     </button>
-                    <button type="submit" id="modal-submit-button" class="w-1/2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+                    <button type="submit" id="modal-submit-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
                         Add Goal
                     </button>
                 </div>
@@ -919,40 +1042,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const modalHTML = `
             <form id="check-in-form">
-                <h3 class="text-xl font-semibold mb-6">Submit Daily Update</h3>
+                <h3 class="text-xl font-semibold mb-6 text-gray-900">Submit Daily Update</h3>
                 
                 <div class="mb-4">
-                    <label for="checkin-goal-select" class="block text-sm font-medium text-gray-300 mb-2">Which goal did you work on?</label>
-                    <select id="checkin-goal-select" name="goalId" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    <label for="checkin-goal-select" class="block text-sm font-medium text-gray-600 mb-2">Which goal did you work on?</label>
+                    <select id="checkin-goal-select" name="goalId" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
                         ${goalOptions}
                     </select>
                 </div>
                 
                 <div class="mb-4">
-                    <label for="checkin-new-value" class="block text-sm font-medium text-gray-300 mb-2">What is your new 'current' value?</label>
-                    <input type="number" id="checkin-new-value" name="newValue" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" required min="0">
+                    <label for="checkin-new-value" class="block text-sm font-medium text-gray-600 mb-2">What is your new 'current' value?</label>
+                    <input type="number" id="checkin-new-value" name="newValue" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required min="0">
                 </div>
 
                 <div class="mb-6">
-                    <label for="checkin-notes" class="block text-sm font-medium text-gray-300 mb-2">What did you do?</label>
-                    <textarea id="checkin-notes" name="notes" class="w-full bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" rows="3" placeholder="e.g., 'Finished 2 DSA problems and reviewed graph concepts...'" required></textarea>
+                    <label for="checkin-notes" class="block text-sm font-medium text-gray-600 mb-2">What did you do?</label>
+                    <textarea id="checkin-notes" name="notes" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" rows="3" placeholder="e.g., 'Finished 2 DSA problems and reviewed graph concepts...'" required></textarea>
                 </div>
 
                 <div class="mb-4">
-                    <label for="checkin-image" class="block text-sm font-medium text-gray-300 mb-2">Add a Screenshot (Max 1MB)</label>
-                    <input type="file" id="checkin-image" name="image" class="w-full text-sm text-gray-400" accept="image/*">
+                    <label for="checkin-image" class="block text-sm font-medium text-gray-600 mb-2">Add a Screenshot (Max 1MB)</label>
+                    <input type="file" id="checkin-image" name="image" class="w-full text-sm text-gray-500" accept="image/*">
                     <div id="image-preview-container" class="mt-2 hidden">
-                        <img id="image-preview" src="#" alt="Image preview" class="max-h-32 rounded-lg border-2 border-gray-600">
+                        <img id="image-preview" src="#" alt="Image preview" class="max-h-32 rounded-lg border-2 border-gray-300">
                     </div>
                 </div>
                 
-                <p class="text-xs text-gray-400 mb-4">Audio recording feature skipped.</p>
+                <p class="text-xs text-gray-500 mb-4">Audio recording feature skipped.</p>
 
                 <div class="flex gap-4">
-                    <button type="button" id="modal-cancel-button" class="w-1/2 bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-300">
+                    <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
                         Cancel
                     </button>
-                    <button type="submit" id="modal-submit-button" class="w-1/2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-300">
+                    <button type="submit" id="modal-submit-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
                         Submit Update
                     </button>
                 </div>
@@ -1033,7 +1156,7 @@ document.addEventListener("DOMContentLoaded", () => {
             closeModal();
             showMessageModal("Your update has been posted to the circle feed!", "Success");
             
-            // NEW: Manually refresh accountability status after posting
+            // Re-load accountability status after posting
             loadCircleMembers(); 
 
         } catch (error) {
@@ -1049,7 +1172,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         if (!currentCircleId) {
-            feedList.innerHTML = `<p class="text-gray-400 text-sm">Select a circle to see the feed.</p>`;
+            feedList.innerHTML = `<p class="text-gray-500 text-sm">Select a circle to see the feed.</p>`;
             return;
         }
 
@@ -1062,6 +1185,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 feedItems.push({ id: doc.id, ...doc.data() });
             });
             
+            // Sort in JS to avoid composite indexes
             feedItems.sort((a, b) => {
                 const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
                 const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
@@ -1079,13 +1203,13 @@ document.addEventListener("DOMContentLoaded", () => {
         feedList.innerHTML = "";
         
         if (feedItems.length === 0) {
-            feedList.innerHTML = `<p class="text-gray-400 text-sm">The feed is empty. Be the first to post an update!</p>`;
+            feedList.innerHTML = `<p class="text-gray-500 text-sm">The feed is empty. Be the first to post an update!</p>`;
             return;
         }
         
         feedItems.forEach(item => {
             const postElement = document.createElement("div");
-            postElement.className = "bg-gray-700 p-4 rounded-lg";
+            postElement.className = "bg-white p-4 rounded-xl border border-gray-200 shadow-sm";
             
             const time = item.timestamp ? new Date(item.timestamp.toMillis()).toLocaleString() : "just now";
             const name = item.userName || item.userEmail.split('@')[0];
@@ -1094,23 +1218,24 @@ document.addEventListener("DOMContentLoaded", () => {
             if (item.imageURL) {
                 mediaHTML = `
                     <div class="mt-3">
-                        <img src="${item.imageURL}" alt="User screenshot" class="max-h-60 w-auto rounded-lg border-2 border-gray-600 cursor-pointer" data-img-src="${item.imageURL}">
+                        <img src="${item.imageURL}" alt="User screenshot" class="max-h-60 w-auto rounded-lg border-2 border-gray-200 cursor-pointer transition duration-300 hover:shadow-md" data-img-src="${item.imageURL}">
                     </div>
                 `;
             }
 
             postElement.innerHTML = `
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-semibold text-white">${name}</span>
-                    <span class="text-xs text-gray-400">${time}</span>
+                    <span class="text-sm font-semibold text-gray-900">${name}</span>
+                    <span class="text-xs text-gray-500">${time}</span>
                 </div>
-                <p class="text-gray-300 mb-2"><strong class="font-medium text-indigo-300">${item.updateText}</strong></p>
-                <p class="text-gray-200 text-sm bg-gray-800 p-3 rounded-md">${item.notes}</p>
+                <p class="text-gray-700 mb-2"><strong class="font-medium text-cyan-600">${item.updateText}</strong></sP>
+                <p class="text-gray-800 text-sm bg-gray-100 p-3 rounded-md">${item.notes}</p>
                 ${mediaHTML}
             `;
             feedList.appendChild(postElement);
         });
 
+        // Add click listener for image zoom
         feedList.querySelectorAll('img[data-img-src]').forEach(img => {
             img.addEventListener('click', () => {
                 showModal(`
@@ -1138,7 +1263,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (error.code === 'auth/unauthorized-domain') {
                 const currentDomain = location.hostname;
                 showMessageModal(
-                    `Firebase is blocking this app's domain. You must add this domain to your Firebase project's "Authorized domains" list.<br><br><strong class="text-white">Domain to add:</strong><br><code class="bg-gray-900 text-indigo-300 px-2 py-1 rounded-md block mt-2">${currentDomain}</code><br><br><strong>How to fix:</strong><B R>1. Go to your Firebase Console<br>2. Go to Authentication > Settings<br>3. Click 'Authorized domains'<br>4. Click 'Add domain' and paste the code above.`, 
+                    `Firebase is blocking this app's domain. You must add this domain to your Firebase project's "Authorized domains" list.<br><br><strong class="text-gray-800">Domain to add:</strong><br><code class="bg-gray-200 text-cyan-700 px-2 py-1 rounded-md block mt-2">${currentDomain}</code><br><br><strong>How to fix:</strong><B R>1. Go to your Firebase Console<br>2. Go to Authentication > Settings<br>3. Click 'Authorized domains'<br>4. Click 'Add domain' and paste the code above.`, 
                     "Sign-In Failed (Action Required)"
                 );
             } else {
@@ -1157,12 +1282,24 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Attach all top-level button listeners
     addGoalButton.addEventListener("click", showAddGoalModal);
     checkInButton.addEventListener("click", showCheckInModal);
     createCircleButton.addEventListener("click", showCreateCircleModal);
     joinCircleButton.addEventListener("click", showJoinCircleModal);
     editAliasButton.addEventListener("click", showAliasModal);
 
+    // Attach Pomodoro Listeners
+    pomodoroButton.addEventListener("click", () => setTimer('pomodoro'));
+    shortBreakButton.addEventListener("click", () => setTimer('short'));
+    longBreakButton.addEventListener("click", () => setTimer('long'));
+    startTimerButton.addEventListener("click", startStopTimer);
+    resetTimerButton.addEventListener("click", resetTimer);
+
+    // NEW: Attach YouTube Player Listener
+    ytLoadButton.addEventListener("click", handleLoadYoutubeVideo);
+
+    // Final check
     if (!auth) {
         showMessageModal("Firebase is not initialized. The app cannot start.", "Fatal Error");
     }

@@ -1,21 +1,21 @@
-/* Makes scrollbars dark and less obtrusive */
+/* Makes scrollbars light and modern */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #2d3748; /* bg-gray-700 */
+    background: #f3f4f6; /* bg-gray-100 */
     border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #4a5568; /* bg-gray-600 */
+    background: #d1d5db; /* bg-gray-300 */
     border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #718096; /* bg-gray-500 */
+    background: #9ca3af; /* bg-gray-400 */
 }
 
 /* Custom style for the file input button */
@@ -26,40 +26,125 @@ input[type="file"]::file-selector-button {
     border: 0;
     font-size: 0.875rem;
     font-weight: 600;
-    background-color: #4f46e5; /* bg-indigo-600 */
+    background-color: #06b6d4; /* bg-cyan-500 */
     color: white;
-    transition: background-color 300ms;
+    transition: all 300ms;
 }
 
 input[type="file"]::file-selector-button:hover {
-    background-color: #4338ca; /* bg-indigo-700 */
+    background-color: #0891b2; /* bg-cyan-600 */
     cursor: pointer;
+    transform: scale(1.05);
 }
 
-/* Styles for Accountability Status dots */
-.status-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 8px;
-    flex-shrink: 0; /* Prevents dot from shrinking */
+/* Styles for Accountability Status items */
+.status-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 0.75rem; /* rounded-xl */
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
 }
 
 .status-safe {
-    background-color: #22c55e; /* green-500 */
+    background-color: #ecfdf5; /* green-50 */
+    color: #059669; /* green-700 */
 }
 
 .status-missed {
-    background-color: #ef4444; /* red-500 */
+    background-color: #fef2f2; /* red-50 */
+    color: #dc2626; /* red-600 */
 }
 
-/* UI TWEAK: Better alignment for info button */
+/* Better alignment for info button */
 .show-circle-id-button {
     height: 40px; /* Match button height */
     width: 40px; /* Make it square */
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    background-color: #e5e7eb; /* bg-gray-200 */
+    color: #374151; /* text-gray-700 */
+    border-radius: 0.5rem; /* rounded-lg */
+    transition: all 0.2s ease-in-out;
+}
+.show-circle-id-button:hover {
+    background-color: #d1d5db; /* bg-gray-300 */
+    transform: scale(1.1);
+}
+
+/* Subtle animations for all buttons */
+.animated-button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.animated-button:active {
+    transform: scale(0.95);
+}
+
+/* New Progress Bar Style */
+.progress-bar-bg {
+    background-color: #e5e7eb; /* bg-gray-200 */
+    border-radius: 9999px;
+    height: 0.75rem; /* h-3 */
+    overflow: hidden;
+}
+.progress-bar-fill {
+    border-radius: 9999px;
+    height: 100%;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Pomodoro Timer Button Styles */
+.timer-button {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background-color: #f3f4f6; /* bg-gray-100 */
+    color: #374151; /* text-gray-700 */
+    transition: all 0.2s ease-in-out;
+}
+.timer-button:hover {
+    background-color: #e5e7eb; /* bg-gray-200 */
+}
+.timer-button-active {
+    background-color: #06b6d4; /* bg-cyan-500 */
+    color: white;
+}
+.timer-button-active:hover {
+    background-color: #0891b2; /* bg-cyan-600 */
+}
+
+/* NEW: YouTube Input Styles */
+.yt-input {
+    flex-grow: 1;
+    background-color: #f3f4f6; /* bg-gray-100 */
+    border: 1px solid #d1d5db; /* border-gray-300 */
+    color: #1f2937; /* text-gray-800 */
+    font-size: 0.875rem;
+    border-radius: 0.5rem; /* rounded-lg */
+    padding: 0.5rem 0.75rem;
+}
+.yt-input:focus {
+    outline: none;
+    border-color: #06b6d4; /* border-cyan-500 */
+    box-shadow: 0 0 0 2px #cffafe; /* ring-2 ring-cyan-100 */
+}
+
+.yt-load-button {
+    flex-shrink: 0;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem; /* rounded-lg */
+    font-size: 0.875rem;
+    font-weight: 600;
+    background-color: #06b6d4; /* bg-cyan-500 */
+    color: white;
+    transition: all 0.2s ease-in-out;
+}
+.yt-load-button:hover {
+    background-color: #0891b2; /* bg-cyan-600 */
 }
 
