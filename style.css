@@ -1,31 +1,161 @@
-/* Makes scrollbars light and modern */
+/* --------------------------------------------------- */
+/* THEME DEFINITIONS (CSS VARIABLES)
+/* --------------------------------------------------- */
+
+/* Theme 1: Light (Default) */
+html.theme-light {
+    --bg-base: #f3f4f6; /* gray-100 */
+    --bg-card: #ffffff; /* white */
+    --bg-card-secondary: #f3f4f6; /* gray-100 */
+    --bg-hover: #e5e7eb; /* gray-200 */
+    --border-color: #e5e7eb; /* gray-200 */
+
+    --text-primary: #111827; /* gray-900 */
+    --text-secondary: #374151; /* gray-700 */
+    --text-muted: #6b7280; /* gray-500 */
+    --text-inverted: #ffffff; /* white */
+
+    --accent-primary: #06b6d4; /* cyan-500 */
+    --accent-primary-hover: #0891b2; /* cyan-600 */
+    --accent-primary-text: #ffffff; /* white */
+    
+    --accent-secondary: #16a34a; /* green-600 */
+    --accent-secondary-hover: #15803d; /* green-700 */
+    --accent-secondary-text: #ffffff; /* white */
+    
+    --status-safe-bg: #ecfdf5; /* green-50 */
+    --status-safe-text: #059669; /* green-700 */
+    --status-missed-bg: #fef2f2; /* red-50 */
+    --status-missed-text: #dc2626; /* red-600 */
+
+    --reaction-bg: #f3f4f6; /* gray-100 */
+    --reaction-border: #e5e7eb; /* gray-200 */
+    --reaction-text: #4b5563; /* gray-600 */
+    --reaction-active-bg: #06b6d4; /* cyan-500 */
+    --reaction-active-border: #06b6d4; /* cyan-500 */
+    --reaction-active-text: #ffffff; /* white */
+}
+
+/* Theme 2: Rosé Pine */
+html.theme-rose {
+    --bg-base: #191724;
+    --bg-card: #1f1d2e;
+    --bg-card-secondary: #26233a;
+    --bg-hover: #6e6a86;
+    --border-color: #26233a;
+
+    --text-primary: #e0def4;
+    --text-secondary: #908caa;
+    --text-muted: #6e6a86;
+    --text-inverted: #191724;
+
+    --accent-primary: #9ccfd8; /* foam */
+    --accent-primary-hover: #ebbcba; /* rose */
+    --accent-primary-text: #191724;
+    
+    --accent-secondary: #31748f; /* pine */
+    --accent-secondary-hover: #9ccfd8; /* foam */
+    --accent-secondary-text: #191724;
+    
+    --status-safe-bg: rgba(49, 120, 143, 0.1);
+    --status-safe-text: #9ccfd8; /* foam */
+    --status-missed-bg: rgba(235, 111, 146, 0.1);
+    --status-missed-text: #eb6f92; /* love */
+
+    --reaction-bg: #26233a;
+    --reaction-border: #6e6a86;
+    --reaction-text: #908caa;
+    --reaction-active-bg: #eb6f92; /* love */
+    --reaction-active-border: #eb6f92;
+    --reaction-active-text: #191724;
+}
+
+/* Theme 3: True Detective (Gritty) */
+html.theme-true-detective {
+    --bg-base: #2e332f; /* Dark swamp green */
+    --bg-card: #1e2220; /* Darker, almost black */
+    --bg-card-secondary: #3a413c; /* Muted green-grey */
+    --bg-hover: #4a524c;
+    --border-color: #3a413c;
+
+    --text-primary: #c2c2a3; /* Desaturated parchment */
+    --text-secondary: #8f8f7b; /* Muted parchment */
+    --text-muted: #606051; /* Darker grey */
+    --text-inverted: #1e2220;
+
+    --accent-primary: #b09144; /* Unsettling yellow/gold */
+    --accent-primary-hover: #c7a74f;
+    --accent-primary-text: #1e2220;
+    
+    --accent-secondary: #5e665b; /* Faded olive */
+    --accent-secondary-hover: #737c70;
+    --accent-secondary-text: #e0e0d1;
+    
+    --status-safe-bg: rgba(176, 145, 68, 0.1);
+    --status-safe-text: #b09144; /* gold */
+    --status-missed-bg: rgba(163, 78, 78, 0.1);
+    --status-missed-text: #a34e4e; /* Faded red */
+
+    --reaction-bg: #3a413c;
+    --reaction-border: #606051;
+    --reaction-text: #8f8f7b;
+    --reaction-active-bg: #b09144; /* gold */
+    --reaction-active-border: #b09144;
+    --reaction-active-text: #1e2220;
+}
+
+/* Theme 4: Cyberpunk (Night City) */
+html.theme-cyberpunk {
+    --bg-base: #0a0a0f; /* True black */
+    --bg-card: #14141c; /* Very dark blue */
+    --bg-card-secondary: #2a2a3a; /* Dark purple/grey */
+    --bg-hover: #3a3a4c;
+    --border-color: #f700ff; /* Neon magenta */
+
+    --text-primary: #f0f0f0; /* Near white */
+    --text-secondary: #a0a0b0; /* Light grey */
+    --text-muted: #6a6a7c;
+    --text-inverted: #0a0a0f;
+
+    --accent-primary: #00f0ff; /* Neon cyan */
+    --accent-primary-hover: #33f8ff;
+    --accent-primary-text: #0a0a0f;
+    
+    --accent-secondary: #f7ff00; /* Neon yellow */
+    --accent-secondary-hover: #faff33;
+    --accent-secondary-text: #0a0a0f;
+    
+    --status-safe-bg: rgba(0, 240, 255, 0.1);
+    --status-safe-text: #00f0ff; /* cyan */
+    --status-missed-bg: rgba(247, 0, 255, 0.1);
+    --status-missed-text: #f700ff; /* magenta */
+
+    --reaction-bg: #2a2a3a;
+    --reaction-border: #6a6a7c;
+    --reaction-text: #a0a0b0;
+    --reaction-active-bg: #f7ff00; /* yellow */
+    --reaction-active-border: #f7ff00;
+    --reaction-active-text: #0a0a0f;
+}
+
+/* --------------------------------------------------- */
+/* GLOBAL STYLES (Using Variables)
+/* --------------------------------------------------- */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 ::-webkit-scrollbar-track {
-    background: #f3f4f6; /* bg-gray-100 */
+    background: var(--bg-card-secondary);
     border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb {
-    background: #d1d5db; /* bg-gray-300 */
+    background: var(--bg-hover);
     border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af; /* bg-gray-400 */
+    background: var(--text-muted);
 }
-
-/* Dark mode scrollbar */
-.dark::-webkit-scrollbar-track {
-    background: #191724; /* rp-base */
-}
-.dark::-webkit-scrollbar-thumb {
-    background: #26233a; /* rp-overlay */
-}
-.dark::-webkit-scrollbar-thumb:hover {
-    background: #6e6a86; /* rp-muted */
-}
-
 
 /* Custom style for the file input button */
 input[type="file"]::file-selector-button {
@@ -35,23 +165,15 @@ input[type="file"]::file-selector-button {
     border: 0;
     font-size: 0.875rem;
     font-weight: 600;
-    background-color: #06b6d4; /* bg-cyan-500 */
-    color: white;
+    background-color: var(--accent-primary);
+    color: var(--accent-primary-text);
     transition: all 300ms;
 }
 input[type="file"]::file-selector-button:hover {
-    background-color: #0891b2; /* bg-cyan-600 */
+    background-color: var(--accent-primary-hover);
     cursor: pointer;
     transform: scale(1.05);
 }
-.dark input[type="file"]::file-selector-button {
-    background-color: #9ccfd8; /* rp-foam */
-    color: #191724; /* rp-base */
-}
-.dark input[type="file"]::file-selector-button:hover {
-    background-color: #ebbcba; /* rp-rose */
-}
-
 
 /* Styles for Accountability Status items */
 .status-item {
@@ -62,24 +184,13 @@ input[type="file"]::file-selector-button:hover {
     font-size: 0.875rem;
     font-weight: 500;
     transition: all 0.2s ease-in-out;
-}
-.status-safe {
-    background-color: #ecfdf5; /* green-50 */
-    color: #059669; /* green-700 */
+    background-color: var(--status-safe-bg);
+    color: var(--status-safe-text);
 }
 .status-missed {
-    background-color: #fef2f2; /* red-50 */
-    color: #dc2626; /* red-600 */
+    background-color: var(--status-missed-bg);
+    color: var(--status-missed-text);
 }
-.dark .status-safe {
-    background-color: rgba(49, 120, 143, 0.1); /* rp-pine transparent */
-    color: #9ccfd8; /* rp-foam */
-}
-.dark .status-missed {
-    background-color: rgba(235, 111, 146, 0.1); /* rp-love transparent */
-    color: #eb6f92; /* rp-love */
-}
-
 
 /* Better alignment for info button */
 .show-circle-id-button {
@@ -89,23 +200,15 @@ input[type="file"]::file-selector-button:hover {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    background-color: #e5e7eb; /* bg-gray-200 */
-    color: #374151; /* text-gray-700 */
+    background-color: var(--bg-card-secondary);
+    color: var(--text-secondary);
     border-radius: 0.5rem; /* rounded-lg */
     transition: all 0.2s ease-in-out;
 }
 .show-circle-id-button:hover {
-    background-color: #d1d5db; /* bg-gray-300 */
+    background-color: var(--bg-hover);
     transform: scale(1.1);
 }
-.dark .show-circle-id-button {
-    background-color: #26233a; /* rp-overlay */
-    color: #e0def4; /* rp-text */
-}
-.dark .show-circle-id-button:hover {
-    background-color: #6e6a86; /* rp-muted */
-}
-
 
 /* Subtle animations for all buttons */
 .animated-button {
@@ -117,7 +220,7 @@ input[type="file"]::file-selector-button:hover {
 
 /* New Progress Bar Style */
 .progress-bar-bg {
-    background-color: #e5e7eb; /* bg-gray-200 */
+    background-color: var(--bg-card-secondary);
     border-radius: 9999px;
     height: 0.75rem; /* h-3 */
     overflow: hidden;
@@ -127,9 +230,26 @@ input[type="file"]::file-selector-button:hover {
     height: 100%;
     transition: width 0.5s ease-in-out;
 }
-.dark .progress-bar-bg {
-    background-color: #26233a; /* rp-overlay */
-}
+/* Progress bar colors based on theme */
+.progress-bar-cyan { background-color: #06b6d4; }
+.progress-bar-green { background-color: #22c55e; }
+.progress-bar-yellow { background-color: #eab308; }
+.progress-bar-orange { background-color: #f97316; }
+
+html.theme-rose .progress-bar-cyan { background-color: var(--accent-primary); }
+html.theme-rose .progress-bar-green { background-color: #31748f; } /* pine */
+html.theme-rose .progress-bar-yellow { background-color: #f6c177; } /* gold */
+html.theme-rose .progress-bar-orange { background-color: #eb6f92; } /* love */
+
+html.theme-true-detective .progress-bar-cyan { background-color: var(--accent-primary); }
+html.theme-true-detective .progress-bar-green { background-color: #5e665b; }
+html.theme-true-detective .progress-bar-yellow { background-color: var(--accent-primary); }
+html.theme-true-detective .progress-bar-orange { background-color: #a34e4e; }
+
+html.theme-cyberpunk .progress-bar-cyan { background-color: var(--accent-primary); }
+html.theme-cyberpunk .progress-bar-green { background-color: var(--accent-secondary); }
+html.theme-cyberpunk .progress-bar-yellow { background-color: var(--accent-secondary); }
+html.theme-cyberpunk .progress-bar-orange { background-color: #f700ff; } /* magenta */
 
 
 /* Pomodoro Timer Button Styles */
@@ -138,37 +258,22 @@ input[type="file"]::file-selector-button:hover {
     border-radius: 9999px;
     font-size: 0.875rem;
     font-weight: 600;
-    background-color: #f3f4f6; /* bg-gray-100 */
-    color: #374151; /* text-gray-700 */
+    background-color: var(--bg-card-secondary);
+    color: var(--text-secondary);
     transition: all 0.2s ease-in-out;
 }
 .timer-button:hover {
-    background-color: #e5e7eb; /* bg-gray-200 */
+    background-color: var(--bg-hover);
 }
 .timer-button-active {
-    background-color: #06b6d4; /* bg-cyan-500 */
-    color: white;
+    background-color: var(--accent-primary);
+    color: var(--accent-primary-text);
 }
 .timer-button-active:hover {
-    background-color: #0891b2; /* bg-cyan-600 */
-}
-.dark .timer-button {
-    background-color: #26233a; /* rp-overlay */
-    color: #e0def4; /* rp-text */
-}
-.dark .timer-button:hover {
-    background-color: #6e6a86; /* rp-muted */
-}
-.dark .timer-button-active {
-    background-color: #c4a7e7; /* rp-iris */
-    color: #191724; /* rp-base */
-}
-.dark .timer-button-active:hover {
-    background-color: #c4a7e7; 
-    opacity: 0.8;
+    background-color: var(--accent-primary-hover);
 }
 
-/* NEW: Timer Settings Button Style */
+/* Timer Settings Button Style */
 .timer-settings-button {
     height: 40px;
     width: 40px;
@@ -176,47 +281,31 @@ input[type="file"]::file-selector-button:hover {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: #9ca3af; /* text-gray-400 */
+    color: var(--text-muted);
     border-radius: 9999px; /* rounded-full */
     transition: all 0.2s ease-in-out;
 }
 .timer-settings-button:hover {
-    background-color: #f3f4f6; /* bg-gray-100 */
-    color: #374151; /* text-gray-700 */
+    background-color: var(--bg-card-secondary);
+    color: var(--text-primary);
     transform: scale(1.1) rotate(45deg);
 }
-.dark .timer-settings-button {
-    color: #6e6a86; /* rp-muted */
-}
-.dark .timer-settings-button:hover {
-    background-color: #26233a; /* rp-overlay */
-    color: #e0def4; /* rp-text */
-}
-
 
 /* YouTube Input Styles */
 .yt-input {
     flex-grow: 1;
-    background-color: #f3f4f6; /* bg-gray-100 */
-    border: 1px solid #d1d5db; /* border-gray-300 */
-    color: #1f2937; /* text-gray-800 */
+    background-color: var(--bg-card-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
     font-size: 0.875rem;
     border-radius: 0.5rem; /* rounded-lg */
     padding: 0.5rem 0.75rem;
 }
 .yt-input:focus {
     outline: none;
-    border-color: #06b6d4; /* border-cyan-500 */
-    box-shadow: 0 0 0 2px #cffafe; /* ring-2 ring-cyan-100 */
-}
-.dark .yt-input {
-    background-color: #26233a; /* rp-overlay */
-    border-color: #6e6a86; /* rp-muted */
-    color: #e0def4; /* rp-text */
-}
-.dark .yt-input:focus {
-    border-color: #eb6f92; /* rp-love */
-    box-shadow: 0 0 0 2px rgba(235, 111, 146, 0.2);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--accent-primary);
+    opacity: 0.8;
 }
 
 .yt-load-button {
@@ -225,19 +314,85 @@ input[type="file"]::file-selector-button:hover {
     border-radius: 0.5rem; /* rounded-lg */
     font-size: 0.875rem;
     font-weight: 600;
-    background-color: #06b6d4; /* bg-cyan-500 */
-    color: white;
+    background-color: var(--accent-primary);
+    color: var(--accent-primary-text);
     transition: all 0.2s ease-in-out;
 }
 .yt-load-button:hover {
-    background-color: #0891b2; /* bg-cyan-600 */
+    background-color: var(--accent-primary-hover);
 }
-.dark .yt-load-button {
-    background-color: #eb6f92; /* rp-love */
-    color: #191724; /* rp-base */
+
+/* Reaction Button Styles */
+.reaction-button {
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    background-color: var(--reaction-bg);
+    color: var(--reaction-text);
+    transition: all 0.2s ease-in-out;
+    border: 1px solid var(--reaction-border);
 }
-.dark .yt-load-button:hover {
-    background-color: #eb6f92;
+.reaction-button:hover {
+    background-color: var(--bg-hover);
+    transform: scale(1.1);
+}
+.reaction-button-active {
+    background-color: var(--reaction-active-bg);
+    color: var(--reaction-active-text);
+    border-color: var(--reaction-active-border);
+}
+
+/* Modal Input/Button Styles (for dynamic modals) */
+.modal-input {
+    width: 100%;
+    background-color: var(--bg-card-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+.modal-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--accent-primary);
     opacity: 0.8;
+}
+
+.modal-button-primary {
+    width: 50%;
+    background-color: var(--accent-primary);
+    color: var(--accent-primary-text);
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+}
+.modal-button-primary:hover {
+    background-color: var(--accent-primary-hover);
+}
+
+.modal-button-secondary {
+    width: 50%;
+    background-color: var(--bg-card-secondary);
+    color: var(--text-secondary);
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+}
+.modal-button-secondary:hover {
+    background-color: var(--bg-hover);
+}
+
+/* NEW: "Carcosa" Focus Mode */
+body.focus-mode-active #left-column,
+body.focus-mode-active #right-column {
+    opacity: 0.1;
+    pointer-events: none;
+}
+body.focus-mode-active #middle-column {
+    /* (Optional) we could scale it up */
+    /* transform: scale(1.05); */
 }
 

@@ -24,10 +24,13 @@ import {
     getDoc,
     setDoc,
     arrayUnion,
+    arrayRemove, 
     getDocs,
     where,
     orderBy,
-    limit
+    limit,
+    runTransaction,
+    writeBatch // NEW: Import writeBatch
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // ---------------------------------------------------
@@ -43,7 +46,7 @@ const firebaseConfig = {
   measurementId: "G-RB97E70HZP"
 };
 
-// NEW: Cat Quotes
+// Cat Quotes
 const catQuotes = [
     "Stay pawsitive!",
     "One paw at a time.",
@@ -66,7 +69,7 @@ let userGoals = [];
 let userCircles = []; 
 let currentCircleId = null; 
 
-// NEW: Timer settings object with defaults
+// Timer settings object with defaults
 let timerSettings = {
     pomodoro: 1500, // 25 minutes
     short: 300,     // 5 minutes
@@ -98,7 +101,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const userDisplayNameElement = document.getElementById("user-display-name");
     const currentCircleIdDisplayElement = document.getElementById("current-circle-id-display");
     
-    // NEW: Cat quote display
     const catQuoteDisplay = document.getElementById("cat-quote-display");
     
     const modal = document.getElementById("modal");
@@ -113,6 +115,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const editAliasButton = document.getElementById("edit-alias-button");
     const circleMembersList = document.getElementById("circle-members-list");
     const accountabilityStatusList = document.getElementById("accountability-status-list"); 
+    
+    // --- NEW: "The Locker" ---
+    const viewArchiveButton = document.getElementById("view-archive-button");
+
+    // --- NEW: "Carcosa" ---
+    const focusModeButton = document.getElementById("focus-mode-button");
 
     // --- Pomodoro DOM References ---
     const timerDisplay = document.getElementById("timer-display");
@@ -122,7 +130,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const startTimerButton = document.getElementById("start-timer-button");
     const resetTimerButton = document.getElementById("reset-timer-button");
     const timerButtons = [pomodoroButton, shortBreakButton, longBreakButton];
-    // NEW: Timer settings button
     const timerSettingsButton = document.getElementById("timer-settings-button");
 
     // --- YouTube Player DOM References ---
@@ -130,10 +137,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const ytLinkInput = document.getElementById("yt-link-input");
     const ytLoadButton = document.getElementById("yt-load-button");
 
-    // --- Theme Toggle DOM References ---
-    const themeToggleButton = document.getElementById("theme-toggle-button");
-    const themeIconDark = document.getElementById("theme-icon-dark");
-    const themeIconLight = document.getElementById("theme-icon-light");
+    // --- NEW: Theme Selector ---
+    const themeSelector = document.getElementById("theme-selector");
+
 
     // --- Pomodoro State ---
     let timerInterval = null;
@@ -141,24 +147,12 @@ document.addEventListener("DOMContentLoaded", () => {
     let timerSeconds = timerSettings.pomodoro; // Use default
     let isRunning = false;
 
-    // --- Theme Toggle Functions ---
-    const setTheme = (theme) => {
-        localStorage.setItem('theme', theme);
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-            themeIconDark.classList.add('hidden');
-            themeIconLight.classList.remove('hidden');
-        } else {
-            document.documentElement.classList.remove('dark');
-            themeIconDark.classList.remove('hidden');
-            themeIconLight.classList.add('hidden');
-        }
-    };
-
-    const toggleTheme = () => {
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        setTheme(newTheme);
+    // --- NEW: Theme Functions ---
+    const setTheme = (theme_class) => {
+        // theme_class will be "theme-light", "theme-rose", etc.
+        localStorage.setItem('theme', theme_class);
+        document.documentElement.className = theme_class; // Set class on <html>
+        if (themeSelector) themeSelector.value = theme_class; // Sync dropdown if present
     };
 
     // --- Pomodoro Functions ---
@@ -179,15 +173,12 @@ document.addEventListener("DOMContentLoaded", () => {
         // Update active button style
         timerButtons.forEach(btn => btn.classList.remove('timer-button-active'));
         if (mode === 'pomodoro') {
-            // UPDATED: Read from settings object
             timerSeconds = timerSettings.pomodoro;
             pomodoroButton.classList.add('timer-button-active');
         } else if (mode === 'short') {
-            // UPDATED: Read from settings object
             timerSeconds = timerSettings.short;
             shortBreakButton.classList.add('timer-button-active');
         } else if (mode === 'long') {
-            // UPDATED: Read from settings object
             timerSeconds = timerSettings.long;
             longBreakButton.classList.add('timer-button-active');
         }
@@ -224,21 +215,20 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimer(timerMode); // Reset to the current active mode
     }
     
-    // NEW: Show Timer Settings Modal
     function showTimerSettingsModal() {
         const modalHTML = `
             <form id="timer-settings-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Timer Settings</h3>
+                <h3 class="text-xl font-semibold mb-6 text-text-primary">Timer Settings</h3>
                 <div class="mb-4">
-                    <label for="pomo-mins" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Pomodoro (minutes)</label>
+                    <label for="pomo-mins" class="block text-sm font-medium text-text-secondary mb-2">Pomodoro (minutes)</label>
                     <input type="number" id="pomo-mins" name="pomodoro" class="modal-input" required min="1" value="${timerSettings.pomodoro / 60}">
                 </div>
                 <div class="mb-4">
-                    <label for="short-mins" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Short Break (minutes)</label>
+                    <label for="short-mins" class="block text-sm font-medium text-text-secondary mb-2">Short Break (minutes)</label>
                     <input type="number" id="short-mins" name="short" class="modal-input" required min="1" value="${timerSettings.short / 60}">
                 </div>
                 <div class="mb-4">
-                    <label for="long-mins" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Long Break (minutes)</label>
+                    <label for="long-mins" class="block text-sm font-medium text-text-secondary mb-2">Long Break (minutes)</label>
                     <input type="number" id="long-mins" name="long" class="modal-input" required min="1" value="${timerSettings.long / 60}">
                 </div>
                 <div class="flex gap-4">
@@ -252,27 +242,14 @@ document.addEventListener("DOMContentLoaded", () => {
             </form>
         `;
         showModal(modalHTML);
-        // Apply dark mode styles to modal inputs
-        document.querySelectorAll('.modal-input').forEach(el => {
-            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
-        });
-        document.querySelectorAll('.modal-button-secondary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
-        });
-        document.querySelectorAll('.modal-button-primary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-iris', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
-        });
-
         document.getElementById("timer-settings-form").addEventListener("submit", handleTimerSettingsSubmit);
         document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
     }
     
-    // NEW: Handle Timer Settings Submit
     function handleTimerSettingsSubmit(event) {
         event.preventDefault();
         const form = event.target;
         
-        // Get values in minutes, convert to seconds
         const newPomodoro = parseInt(form.pomodoro.value) * 60;
         const newShort = parseInt(form.short.value) * 60;
         const newLong = parseInt(form.long.value) * 60;
@@ -282,15 +259,12 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Update global state
         timerSettings.pomodoro = newPomodoro;
         timerSettings.short = newShort;
         timerSettings.long = newLong;
         
-        // Save to localStorage
         localStorage.setItem('timerSettings', JSON.stringify(timerSettings));
         
-        // Apply new settings to the timer
         setTimer(timerMode); 
         closeModal();
     }
@@ -310,7 +284,6 @@ document.addEventListener("DOMContentLoaded", () => {
             ytPlayer.src = `https://www.youtube.com/embed/${videoId}`;
             ytLinkInput.value = ""; // Clear input
             
-            // Save this ID to Firebase for persistence
             if (currentUserId) {
                 try {
                     const userRef = doc(db, `users/${currentUserId}`);
@@ -329,6 +302,16 @@ document.addEventListener("DOMContentLoaded", () => {
     function showModal(contentHTML) {
         modalContent.innerHTML = contentHTML;
         modal.classList.remove("hidden");
+        // Apply theme styles to dynamically created modal elements
+        modalContent.querySelectorAll('.modal-input').forEach(el => {
+            el.classList.add('w-full', 'bg-bg-card-secondary', 'border', 'border-border-color', 'text-text-primary', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-accent-primary');
+        });
+        modalContent.querySelectorAll('.modal-button-primary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-accent-primary', 'text-accent-primary-text', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-accent-primary-hover', 'transition', 'duration-300');
+        });
+        modalContent.querySelectorAll('.modal-button-secondary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-bg-card-secondary', 'text-text-secondary', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-bg-hover', 'transition', 'duration-300');
+        });
     }
 
     function closeModal() {
@@ -338,9 +321,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showMessageModal(message, title = "Notification") {
         const modalHTML = `
-            <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-rp-text">${title}</h3>
-            <p class="text-gray-600 dark:text-rp-subtle mb-6">${message}</p>
-            <button id="modal-close-button" class="w-full bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300 dark:bg-rp-foam dark:text-rp-base dark:hover:bg-opacity-80">
+            <h3 class="text-xl font-semibold mb-4 text-text-primary">${title}</h3>
+            <p class="text-text-secondary mb-6">${message}</p>
+            <button id="modal-close-button" class="w-full bg-accent-primary text-accent-primary-text font-semibold py-2 px-4 rounded-lg hover:bg-accent-primary-hover transition duration-300">
                 Close
             </button>
         `;
@@ -408,10 +391,12 @@ document.addEventListener("DOMContentLoaded", () => {
             userGoals = [];
             userCircles = [];
 
-            // Reset timer on logout
             resetTimer();
-            // Reset player to default
             ytPlayer.src = "https://www.youtube.com/embed/jfKfPfyJRdk";
+            
+            // Show a new random cat quote on logout
+            const quote = catQuotes[Math.floor(Math.random() * catQuotes.length)];
+            catQuoteDisplay.textContent = `"${quote}"`;
         }
     });
 
@@ -440,7 +425,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     displayName: userDisplayName,
                     createdAt: serverTimestamp(),
                     circles: [personalCircleData],
-                    lastYtVideoId: lastVideoId // Save default video ID
+                    lastYtVideoId: lastVideoId 
                 });
                 
                 userCircles = [personalCircleData];
@@ -455,7 +440,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const userData = userSnap.data();
             userCircles = userData.circles || [];
             userDisplayName = userData.displayName || user.email.split('@')[0];
-            lastVideoId = userData.lastYtVideoId || lastVideoId; // Load saved ID or default
+            lastVideoId = userData.lastYtVideoId || lastVideoId; 
             
             if (userCircles.length > 0) {
                 currentCircleId = userCircles[0].id; 
@@ -464,31 +449,27 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
-        // Load the user's preferred video
         ytPlayer.src = `https://www.youtube.com/embed/${lastVideoId}`;
-        
         userDisplayNameElement.textContent = userDisplayName;
-        
         currentCircleIdDisplayElement.textContent = currentCircleId || "No circle selected";
-        
         renderCircleList();
         
         if (currentCircleId) {
             loadCircleFeed();
             loadCircleMembers(); 
         } else {
-            feedList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">Join or create a circle to see a feed.</p>`;
-            circleMembersList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">No circle selected.</p>`;
-            accountabilityStatusList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">Select a circle.</p>`;
+            feedList.innerHTML = `<p class="text-sm text-text-muted">Join or create a circle to see a feed.</p>`;
+            circleMembersList.innerHTML = `<p class="text-sm text-text-muted">No circle selected.</p>`;
+            accountabilityStatusList.innerHTML = `<p class="text-sm text-text-muted">Select a circle.</p>`;
         }
     }
 
     function showAliasModal() {
         const modalHTML = `
             <form id="alias-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Set Your Alias</h3>
+                <h3 class="text-xl font-semibold mb-6 text-text-primary">Set Your Alias</h3>
                 <div class="mb-4">
-                    <label for="display-name" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Display Name</label>
+                    <label for="display-name" class="block text-sm font-medium text-text-secondary mb-2">Display Name</label>
                     <input type="text" id="display-name" name="name" class="modal-input" required value="${userDisplayName || ''}">
                 </div>
                 <div class="flex gap-4">
@@ -502,17 +483,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </form>
         `;
         showModal(modalHTML);
-        // Apply dark mode styles to modal inputs
-        document.querySelectorAll('.modal-input').forEach(el => {
-            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
-        });
-        document.querySelectorAll('.modal-button-secondary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
-        });
-        document.querySelectorAll('.modal-button-primary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-love', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
-        });
-
         document.getElementById("alias-form").addEventListener("submit", handleAliasSubmit);
         document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
     }
@@ -546,15 +516,15 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderCircleList() {
         circlesList.innerHTML = "";
         if (userCircles.length === 0) {
-            circlesList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">You are not in any circles.</p>`;
+            circlesList.innerHTML = `<p class="text-sm text-text-muted">You are not in any circles.</p>`;
             return;
         }
 
         userCircles.forEach(circle => {
             const isActive = circle.id === currentCircleId;
             const buttonClass = isActive
-                ? "bg-cyan-500 text-white shadow-md dark:bg-rp-foam dark:text-rp-base"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-rp-overlay dark:text-rp-subtle dark:hover:bg-rp-muted";
+                ? "bg-accent-primary text-accent-primary-text shadow-md"
+                : "bg-bg-card-secondary text-text-secondary hover:bg-bg-hover";
             
             const circleElement = document.createElement("div");
             circleElement.className = "flex items-center gap-2";
@@ -600,9 +570,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showCircleInfoModal(id, name) {
         const modalHTML = `
-            <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-rp-text">Circle Info: ${name}</h3>
-            <p class="text-sm text-gray-600 dark:text-rp-subtle mb-2">Share this ID with friends so they can join this circle:</p>
-            <input type="text" readonly id="circle-id-share" value="${id}" class="modal-input w-full bg-gray-100 border border-gray-300 text-cyan-700 font-medium rounded-lg px-3 py-2 select-all mb-4 dark:bg-rp-base dark:border-rp-muted dark:text-rp-foam">
+            <h3 class="text-xl font-semibold mb-4 text-text-primary">Circle Info: ${name}</h3>
+            <p class="text-sm text-text-secondary mb-2">Share this ID with friends so they can join this circle:</p>
+            <input type="text" readonly id="circle-id-share" value="${id}" class="modal-input w-full bg-bg-base text-accent-primary font-medium rounded-lg px-3 py-2 select-all mb-4">
             <div class="flex gap-4">
                 <button type="button" id="modal-cancel-button" class="modal-button-secondary">
                     Close
@@ -614,16 +584,6 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         showModal(modalHTML);
         
-        // Apply dark mode styles to modal buttons
-        document.querySelectorAll('.modal-button-secondary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
-        });
-        document.querySelectorAll('.modal-button-primary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-love', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
-        });
-
-        document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
-        
         const copyButton = document.getElementById("copy-circle-id-button");
         copyButton.addEventListener("click", () => {
             if (copyToClipboard(id)) {
@@ -633,14 +593,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 copyButton.textContent = "Failed!";
             }
         });
+        document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
     }
 
     function showCreateCircleModal() {
         const modalHTML = `
             <form id="create-circle-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Create New Circle</h3>
+                <h3 class="text-xl font-semibold mb-6 text-text-primary">Create New Circle</h3>
                 <div class="mb-4">
-                    <label for="circle-name" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Circle Name</label>
+                    <label for="circle-name" class="block text-sm font-medium text-text-secondary mb-2">Circle Name</label>
                     <input type="text" id="circle-name" name="name" class="modal-input" required placeholder="e.g., DSA Grinders">
                 </div>
                 <div class="flex gap-4">
@@ -654,16 +615,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </form>
         `;
         showModal(modalHTML);
-        // Apply dark mode styles to modal inputs/buttons
-        document.querySelectorAll('.modal-input').forEach(el => {
-            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
-        });
-        document.querySelectorAll('.modal-button-secondary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
-        });
-        document.querySelectorAll('.modal-button-primary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-foam', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
-        });
         document.getElementById("create-circle-form").addEventListener("submit", handleCreateCircleSubmit);
         document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
     }
@@ -709,9 +660,9 @@ document.addEventListener("DOMContentLoaded", () => {
     function showJoinCircleModal() {
         const modalHTML = `
             <form id="join-circle-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Join a Circle</h3>
+                <h3 class="text-xl font-semibold mb-6 text-text-primary">Join a Circle</h3>
                 <div class="mb-4">
-                    <label for="circle-id" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Circle ID</label>
+                    <label for="circle-id" class="block text-sm font-medium text-text-secondary mb-2">Circle ID</label>
                     <input type="text" id="circle-id" name="id" class="modal-input" required placeholder="Paste Circle ID here">
                 </div>
                 <div class="flex gap-4">
@@ -725,16 +676,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </form>
         `;
         showModal(modalHTML);
-        // Apply dark mode styles to modal inputs/buttons
-        document.querySelectorAll('.modal-input').forEach(el => {
-            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
-        });
-        document.querySelectorAll('.modal-button-secondary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
-        });
-        document.querySelectorAll('.modal-button-primary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-foam', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
-        });
         document.getElementById("join-circle-form").addEventListener("submit", handleJoinCircleSubmit);
         document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
     }
@@ -793,8 +734,8 @@ document.addEventListener("DOMContentLoaded", () => {
     async function loadCircleMembers() {
         if (!currentCircleId) return;
         
-        circleMembersList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">Loading members...</p>`;
-        accountabilityStatusList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">Loading status...</p>`; 
+        circleMembersList.innerHTML = `<p class="text-sm text-text-muted">Loading members...</p>`;
+        accountabilityStatusList.innerHTML = `<p class="text-sm text-text-muted">Loading status...</p>`; 
 
         try {
             const circleRef = doc(db, `circles/${currentCircleId}`);
@@ -806,8 +747,8 @@ document.addEventListener("DOMContentLoaded", () => {
             
             const memberIds = circleSnap.data().members || [];
             if (memberIds.length === 0) {
-                 circleMembersList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">No members found.</p>`;
-                 accountabilityStatusList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">No members.</p>`; 
+                 circleMembersList.innerHTML = `<p class="text-sm text-text-muted">No members found.</p>`;
+                 accountabilityStatusList.innerHTML = `<p class="text-sm text-text-muted">No members.</p>`; 
                  return;
             }
 
@@ -839,7 +780,7 @@ document.addEventListener("DOMContentLoaded", () => {
         members.forEach(member => {
             const isMe = member.id === currentUserId;
             const memberElement = document.createElement("button");
-            memberElement.className = "animated-button w-full text-left bg-gray-100 text-gray-700 font-medium py-2 px-3 rounded-lg hover:bg-gray-200 transition duration-300 dark:bg-rp-overlay dark:text-rp-subtle dark:hover:bg-rp-muted";
+            memberElement.className = "animated-button w-full text-left bg-bg-card-secondary text-text-secondary font-medium py-2 px-3 rounded-lg hover:bg-bg-hover transition duration-300";
             memberElement.textContent = `${member.name} ${isMe ? "(You)" : ""}`;
             memberElement.dataset.memberId = member.id;
             memberElement.dataset.memberName = member.name;
@@ -912,7 +853,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Render the lists
             if (membersSafe.length > 0) {
                 const safeHeader = document.createElement('h4');
-                safeHeader.className = "text-sm font-semibold text-green-600 dark:text-rp-foam mb-2";
+                safeHeader.className = "text-sm font-semibold text-status-safe-text mb-2";
                 safeHeader.textContent = "Up-to-Date";
                 accountabilityStatusList.appendChild(safeHeader);
                 
@@ -930,7 +871,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (membersMissed.length > 0) {
                 const missedHeader = document.createElement('h4');
-                missedHeader.className = `text-sm font-semibold text-red-600 dark:text-rp-love mb-2 ${membersSafe.length > 0 ? 'mt-4' : ''}`;
+                missedHeader.className = `text-sm font-semibold text-status-missed-text mb-2 ${membersSafe.length > 0 ? 'mt-4' : ''}`;
                 missedHeader.textContent = "Missed Update";
                 accountabilityStatusList.appendChild(missedHeader);
 
@@ -947,7 +888,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             
             if (membersSafe.length === 0 && membersMissed.length === 0) {
-                 accountabilityStatusList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">No members in this circle.</p>`;
+                 accountabilityStatusList.innerHTML = `<p class="text-sm text-text-muted">No members in this circle.</p>`;
             }
 
         } catch (error) {
@@ -958,11 +899,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function showMemberGoalsModal(memberId, memberName) {
         const modalHTML = `
-            <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-rp-text">Goals for ${memberName}</h3>
+            <h3 class="text-xl font-semibold mb-4 text-text-primary">Goals for ${memberName}</h3>
             <div id="member-goals-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-                <p class="text-gray-500 dark:text-rp-muted">Loading goals...</p>
+                <p class="text-text-muted">Loading goals...</p>
             </div>
-            <button id="modal-close-button" class="animated-button mt-6 w-full bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300 dark:bg-rp-foam dark:text-rp-base dark:hover:bg-opacity-80">
+            <button id="modal-close-button" class="animated-button mt-6 w-full bg-accent-primary text-accent-primary-text font-semibold py-2 px-4 rounded-lg hover:bg-accent-primary-hover transition duration-300">
                 Close
             </button>
         `;
@@ -975,7 +916,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const goalsSnap = await getDocs(goalsRef);
 
             if (goalsSnap.empty) {
-                memberGoalsList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted">${memberName} hasn't added any goals yet.</p>`;
+                memberGoalsList.innerHTML = `<p class="text-text-muted">${memberName} hasn't added any goals yet.</p>`;
                 return;
             }
             
@@ -986,16 +927,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 const total = Number(goal.total);
                 const percentage = total > 0 ? (current / total) * 100 : 0;
                 
-                let progressBarColor = "bg-cyan-500 dark:bg-rp-foam";
-                if (percentage >= 100) progressBarColor = "bg-green-500 dark:bg-rp-pine";
-                else if (percentage >= 50) progressBarColor = "bg-yellow-500 dark:bg-rp-gold";
+                let progressBarColor = "progress-bar-cyan";
+                if (percentage >= 100) progressBarColor = "progress-bar-green";
+                else if (percentage >= 50) progressBarColor = "progress-bar-yellow";
 
                 const goalElement = document.createElement("div");
-                goalElement.className = "bg-gray-100 p-3 rounded-lg dark:bg-rp-base";
+                goalElement.className = "bg-bg-card-secondary p-3 rounded-lg";
                 goalElement.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <span class="font-semibold text-gray-800 dark:text-rp-subtle">${goal.title}</span>
-                        <span class="text-gray-500 dark:text-rp-muted">${current} / ${total}</span>
+                        <span class="font-semibold text-text-secondary">${goal.title}</span>
+                        <span class="text-text-muted">${current} / ${total}</span>
                     </div>
                     <div class="progress-bar-bg mt-2">
                         <div class="progress-bar-fill ${progressBarColor}" style="width: ${percentage}%"></div>
@@ -1034,7 +975,7 @@ document.addEventListener("DOMContentLoaded", () => {
         goalsList.innerHTML = "";
         
         if (goals.length === 0) {
-            goalsList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">You haven't added any goals yet. Click the "+" button to get started.</p>`;
+            goalsList.innerHTML = `<p class="text-sm text-text-muted">You haven't added any goals yet. Click the "+" button to get started.</p>`;
             return;
         }
         
@@ -1042,32 +983,41 @@ document.addEventListener("DOMContentLoaded", () => {
             const current = Number(goal.current);
             const total = Number(goal.total);
             const percentage = total > 0 ? (current / total) * 100 : 0;
+            const isComplete = current >= total;
             
-            let progressBarColor = "bg-cyan-500 dark:bg-rp-foam";
-            if (percentage >= 100) progressBarColor = "bg-green-500 dark:bg-rp-pine";
-            else if (percentage >= 75) progressBarColor = "bg-blue-500 dark:bg-rp-iris";
-            else if (percentage >= 50) progressBarColor = "bg-yellow-500 dark:bg-rp-gold";
-            else if (percentage >= 25) progressBarColor = "bg-orange-500 dark:bg-rp-rose";
+            let progressBarColor = "progress-bar-cyan";
+            if (percentage >= 100) progressBarColor = "progress-bar-green";
+            else if (percentage >= 75) progressBarColor = "progress-bar-cyan";
+            else if (percentage >= 50) progressBarColor = "progress-bar-yellow";
+            else if (percentage >= 25) progressBarColor = "progress-bar-orange";
 
             const goalElement = document.createElement("div");
-            goalElement.className = "bg-gray-50 p-4 rounded-xl border border-gray-200 dark:bg-rp-base dark:border-rp-overlay";
+            goalElement.className = "bg-bg-card-secondary p-4 rounded-xl border border-border-color";
+            
+            // NEW: Show "Archive" or "Delete" button
+            const actionButtonHTML = isComplete
+                ? `<button data-id="${goal.id}" class="archive-goal-button text-xs text-green-600 hover:text-green-700 font-medium mt-2">Archive</button>`
+                : `<button data-id="${goal.id}" class="delete-goal-button text-xs text-red-500 hover:text-red-700 font-medium mt-2">Delete</button>`;
+
             goalElement.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <span class="font-semibold text-gray-800 dark:text-rp-text">${goal.title}</span>
-                    <span class="text-sm font-medium text-gray-500 dark:text-rp-muted">${current} / ${total}</span>
+                    <span class="font-semibold text-text-primary">${goal.title}</span>
+                    <span class="text-sm font-medium text-text-muted">${current} / ${total}</span>
                 </div>
                 <div class="progress-bar-bg mt-2">
                     <div class="progress-bar-fill ${progressBarColor}" style="width: ${percentage}%"></div>
                 </div>
-                <button data-id="${goal.id}" class="delete-goal-button text-xs text-red-500 hover:text-red-700 font-medium mt-2 dark:text-rp-love dark:hover:text-rp-love/80">
-                    Delete
-                </button>
+                ${actionButtonHTML}
             `;
             goalsList.appendChild(goalElement);
         });
         
         document.querySelectorAll('.delete-goal-button').forEach(button => {
             button.addEventListener('click', () => handleDeleteGoal(button.dataset.id));
+        });
+        // NEW: Add listener for archive buttons
+        document.querySelectorAll('.archive-goal-button').forEach(button => {
+            button.addEventListener('click', () => handleArchiveGoal(button.dataset.id));
         });
     }
 
@@ -1083,22 +1033,94 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // NEW: "The Locker" - Archive Goal Function
+    async function handleArchiveGoal(goalId) {
+        if (!currentUserId || !goalId) return;
+
+        const goalRef = doc(db, `users/${currentUserId}/goals`, goalId);
+        const archiveRef = doc(db, `users/${currentUserId}/archived_goals`, goalId);
+        
+        try {
+            // Use a transaction to safely move the doc
+            await runTransaction(db, async (transaction) => {
+                const goalSnap = await transaction.get(goalRef);
+                if (!goalSnap.exists()) {
+                    throw "Goal does not exist!";
+                }
+                const goalData = goalSnap.data();
+                
+                // 1. Create the new archived doc
+                transaction.set(archiveRef, { ...goalData, archivedAt: serverTimestamp() });
+                // 2. Delete the old active doc
+                transaction.delete(goalRef);
+            });
+            showMessageModal("Goal archived! View it in 'The Locker'.", "Success");
+        } catch (error) {
+            console.error("Error archiving goal:", error);
+            showMessageModal(`Could not archive goal: ${error.message}`, "Error");
+        }
+    }
+
+    // NEW: "The Locker" - Show Archive Modal Function
+    async function showArchivedGoalsModal() {
+        const modalHTML = `
+            <h3 class="text-xl font-semibold mb-4 text-text-primary">Archived Goals (The Locker)</h3>
+            <div id="archived-goals-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                <p class="text-text-muted">Loading archived goals...</p>
+            </div>
+            <button id="modal-close-button" class="animated-button mt-6 w-full bg-accent-primary text-accent-primary-text font-semibold py-2 px-4 rounded-lg hover:bg-accent-primary-hover transition duration-300">
+                Close
+            </button>
+        `;
+        showModal(modalHTML);
+        document.getElementById("modal-close-button").addEventListener("click", closeModal);
+
+        const archivedList = document.getElementById("archived-goals-list");
+        try {
+            const goalsRef = collection(db, `users/${currentUserId}/archived_goals`);
+            const goalsSnap = await getDocs(goalsRef);
+
+            if (goalsSnap.empty) {
+                archivedList.innerHTML = `<p class="text-text-muted">You have no archived goals.</p>`;
+                return;
+            }
+            
+            archivedList.innerHTML = ""; // Clear loading
+            goalsSnap.forEach(doc => {
+                const goal = doc.data();
+                const goalElement = document.createElement("div");
+                goalElement.className = "bg-bg-card-secondary p-3 rounded-lg";
+                goalElement.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-semibold text-text-secondary">${goal.title}</span>
+                        <span class="text-sm text-text-muted">${goal.current} / ${goal.total}</span>
+                    </div>
+                `;
+                archivedList.appendChild(goalElement);
+            });
+
+        } catch (error) {
+            console.error("Error fetching archived goals:", error);
+            archivedList.innerHTML = `<p class="text-red-500">Could not load archived goals.</p>`;
+        }
+    }
+
 
     function showAddGoalModal() {
         const modalHTML = `
             <form id="add-goal-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Add New Goal</h3>
+                <h3 class="text-xl font-semibold mb-6 text-text-primary">Add New Goal</h3>
                 <div class="mb-4">
-                    <label for="goal-title" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Goal Title</label>
+                    <label for="goal-title" class="block text-sm font-medium text-text-secondary mb-2">Goal Title</label>
                     <input type="text" id="goal-title" name="title" class="modal-input" required placeholder="e.g., Leetcode Questions">
                 </div>
                 <div class="flex gap-4 mb-6">
                     <div class="w-1/2">
-                        <label for="goal-current" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Current</label>
+                        <label for="goal-current" class="block text-sm font-medium text-text-secondary mb-2">Current</label>
                         <input type="number" id="goal-current" name="current" class="modal-input" required value="0" min="0">
                     </div>
                     <div class="w-1/2">
-                        <label for="goal-total" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Total</LAbel>
+                        <label for="goal-total" class="block text-sm font-medium text-text-secondary mb-2">Total</LAbel>
                         <input type="number" id="goal-total" name="total" class="modal-input" required placeholder="e.g., 150" min="1">
                     </div>
                 </div>
@@ -1113,17 +1135,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </form>
         `;
         showModal(modalHTML);
-        // Apply dark mode styles to modal inputs/buttons
-        document.querySelectorAll('.modal-input').forEach(el => {
-            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
-        });
-        document.querySelectorAll('.modal-button-secondary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
-        });
-        document.querySelectorAll('.modal-button-primary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-foam', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
-        });
-        
         document.getElementById("add-goal-form").addEventListener("submit", handleAddGoalSubmit);
         document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
     }
@@ -1216,34 +1227,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const modalHTML = `
             <form id="check-in-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Submit Daily Update</h3>
+                <h3 class="text-xl font-semibold mb-6 text-text-primary">Submit Daily Update</h3>
                 
                 <div class="mb-4">
-                    <label for="checkin-goal-select" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Which goal did you work on?</label>
+                    <label for="checkin-goal-select" class="block text-sm font-medium text-text-secondary mb-2">Which goal did you work on?</label>
                     <select id="checkin-goal-select" name="goalId" class="modal-input" required>
                         ${goalOptions}
                     </select>
                 </div>
                 
                 <div class="mb-4">
-                    <label for="checkin-new-value" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">What is your new 'current' value?</label>
+                    <label for="checkin-new-value" class="block text-sm font-medium text-text-secondary mb-2">What is your new 'current' value?</label>
                     <input type="number" id="checkin-new-value" name="newValue" class="modal-input" required min="0">
                 </div>
 
                 <div class="mb-6">
-                    <label for="checkin-notes" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">What did you do?</label>
+                    <label for="checkin-notes" class="block text-sm font-medium text-text-secondary mb-2">What did you do?</label>
                     <textarea id="checkin-notes" name="notes" class="modal-input" rows="3" placeholder="e.g., 'Finished 2 DSA problems and reviewed graph concepts...'" required></textarea>
                 </div>
 
                 <div class="mb-4">
-                    <label for="checkin-image" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Add a Screenshot (Max 1MB)</label>
-                    <input type="file" id="checkin-image" name="image" class="w-full text-sm text-gray-500 dark:text-rp-subtle" accept="image/*">
+                    <label for="checkin-image" class="block text-sm font-medium text-text-secondary mb-2">Add a Screenshot (Max 1MB)</label>
+                    <input type="file" id="checkin-image" name="image" class="w-full text-sm text-text-muted" accept="image/*">
                     <div id="image-preview-container" class="mt-2 hidden">
-                        <img id="image-preview" src="#" alt="Image preview" class="max-h-32 rounded-lg border-2 border-gray-300 dark:border-rp-overlay">
+                        <img id="image-preview" src="#" alt="Image preview" class="max-h-32 rounded-lg border-2 border-border-color">
                     </div>
                 </div>
                 
-                <p class="text-xs text-gray-500 dark:text-rp-muted mb-4">Audio recording feature skipped.</p>
+                <p class="text-xs text-text-muted mb-4">Audio recording feature skipped.</p>
 
                 <div class="flex gap-4">
                     <button type="button" id="modal-cancel-button" class="modal-button-secondary">
@@ -1256,17 +1267,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </form>
         `;
         showModal(modalHTML);
-
-        // Apply dark mode styles to modal inputs/buttons
-        document.querySelectorAll('.modal-input').forEach(el => {
-            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
-        });
-        document.querySelectorAll('.modal-button-secondary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
-        });
-        document.querySelectorAll('.modal-button-primary').forEach(el => {
-            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-pine', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
-        });
 
         document.getElementById("checkin-image").addEventListener("change", handleImagePreview);
         document.getElementById("check-in-form").addEventListener("submit", handleCheckInSubmit);
@@ -1320,13 +1320,16 @@ document.addEventListener("DOMContentLoaded", () => {
             
             submitButton.textContent = "Saving update...";
 
+            // Use a batch write to update goal and add feed post
+            const batch = writeBatch(db);
+
             const goalRef = doc(db, `users/${currentUserId}/goals`, goalId);
-            await updateDoc(goalRef, {
+            batch.update(goalRef, {
                 current: newValue
             });
             
-            const feedRef = collection(db, `circles/${currentCircleId}/feed`);
-            await addDoc(feedRef, {
+            const feedRef = doc(collection(db, `circles/${currentCircleId}/feed`));
+            batch.set(feedRef, {
                 userId: currentUserId,
                 userName: userDisplayName, 
                 userEmail: userEmail,
@@ -1335,8 +1338,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 notes: notes,
                 timestamp: serverTimestamp(),
                 audioURL: null,
-                imageURL: imageURL
+                imageURL: imageURL,
+                reactions: {} 
             });
+
+            await batch.commit();
             
             closeModal();
             showMessageModal("Your update has been posted to the circle feed!", "Success");
@@ -1357,7 +1363,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         if (!currentCircleId) {
-            feedList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">Select a circle to see the feed.</p>`;
+            feedList.innerHTML = `<p class="text-sm text-text-muted">Select a circle to see the feed.</p>`;
             return;
         }
 
@@ -1388,13 +1394,15 @@ document.addEventListener("DOMContentLoaded", () => {
         feedList.innerHTML = "";
         
         if (feedItems.length === 0) {
-            feedList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">The feed is empty. Be the first to post an update!</p>`;
+            feedList.innerHTML = `<p class="text-sm text-text-muted">The feed is empty. Be the first to post an update!</p>`;
             return;
         }
         
+        const availableReactions = ['👍', '🔥', '🎉'];
+
         feedItems.forEach(item => {
             const postElement = document.createElement("div");
-            postElement.className = "bg-white p-4 rounded-xl border border-gray-200 shadow-sm dark:bg-rp-base dark:border-rp-overlay";
+            postElement.className = "bg-bg-card-secondary p-4 rounded-xl border border-border-color";
             
             const time = item.timestamp ? new Date(item.timestamp.toMillis()).toLocaleString() : "just now";
             const name = item.userName || item.userEmail.split('@')[0];
@@ -1403,19 +1411,37 @@ document.addEventListener("DOMContentLoaded", () => {
             if (item.imageURL) {
                 mediaHTML = `
                     <div class="mt-3">
-                        <img src="${item.imageURL}" alt="User screenshot" class="max-h-60 w-auto rounded-lg border-2 border-gray-200 cursor-pointer transition duration-300 hover:shadow-md dark:border-rp-overlay" data-img-src="${item.imageURL}">
+                        <img src="${item.imageURL}" alt="User screenshot" class="max-h-60 w-auto rounded-lg border-2 border-border-color cursor-pointer transition duration-300 hover:shadow-md" data-img-src="${item.imageURL}">
                     </div>
                 `;
             }
 
+            // NEW: Build reactions HTML
+            let reactionsHTML = '<div class="flex gap-2 mt-4">';
+            const reactions = item.reactions || {};
+            
+            availableReactions.forEach(emoji => {
+                const reactionData = reactions[emoji] || { count: 0, reactors: [] };
+                const count = reactionData.count;
+                const userHasReacted = reactionData.reactors.includes(currentUserId);
+                
+                reactionsHTML += `
+                    <button class="reaction-button ${userHasReacted ? 'reaction-button-active' : ''}" data-post-id="${item.id}" data-emoji="${emoji}">
+                        ${emoji} <span class="ml-1 text-xs">${count}</span>
+                    </button>
+                `;
+            });
+            reactionsHTML += '</div>';
+
             postElement.innerHTML = `
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-semibold text-gray-900 dark:text-rp-text">${name}</span>
-                    <span class="text-xs text-gray-500 dark:text-rp-muted">${time}</span>
+                    <span class="text-sm font-semibold text-text-primary">${name}</span>
+                    <span class="text-xs text-text-muted">${time}</span>
                 </div>
-                <p class="text-gray-700 dark:text-rp-subtle mb-2"><strong class="font-medium text-cyan-600 dark:text-rp-foam">${item.updateText}</strong></sP>
-                <p class="text-gray-800 text-sm bg-gray-100 p-3 rounded-md dark:bg-rp-base dark:text-rp-subtle">${item.notes}</p>
+                <p class="text-text-secondary mb-2"><strong class="font-medium text-accent-primary">${item.updateText}</strong></sP>
+                <p class="text-text-secondary text-sm bg-bg-base p-3 rounded-md">${item.notes}</p>
                 ${mediaHTML}
+                ${reactionsHTML} <!-- NEW: Add reactions bar -->
             `;
             feedList.appendChild(postElement);
         });
@@ -1428,7 +1454,62 @@ document.addEventListener("DOMContentLoaded", () => {
                 `);
             });
         });
+
+        // NEW: Add click listeners for reaction buttons
+        feedList.querySelectorAll('.reaction-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const postId = button.dataset.postId;
+                const emoji = button.dataset.emoji;
+                handleReactionClick(postId, emoji);
+            });
+        });
     }
+
+    async function handleReactionClick(postId, emoji) {
+        if (!currentUserId || !currentCircleId) return;
+
+        const postRef = doc(db, `circles/${currentCircleId}/feed`, postId);
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const postSnap = await transaction.get(postRef);
+                if (!postSnap.exists()) {
+                    throw "Post does not exist!";
+                }
+
+                const postData = postSnap.data();
+                const reactions = postData.reactions || {};
+                
+                if (!reactions[emoji]) {
+                    reactions[emoji] = { count: 0, reactors: [] };
+                }
+                
+                const reactionData = reactions[emoji];
+                const userHasReacted = reactionData.reactors.includes(currentUserId);
+
+                if (userHasReacted) {
+                    // User is removing their reaction
+                    reactionData.count = Math.max(0, reactionData.count - 1);
+                    transaction.update(postRef, {
+                        [`reactions.${emoji}.count`]: reactionData.count,
+                        [`reactions.${emoji}.reactors`]: arrayRemove(currentUserId)
+                    });
+                } else {
+                    // User is adding their reaction
+                    reactionData.count += 1;
+                    transaction.update(postRef, {
+                        [`reactions.${emoji}.count`]: reactionData.count,
+                        [`reactions.${emoji}.reactors`]: arrayUnion(currentUserId)
+                    });
+                }
+            });
+            console.log("Reaction updated successfully!");
+        } catch (error) {
+            console.error("Error updating reaction: ", error);
+            showMessageModal("Could not add reaction. Please try again.", "Error");
+        }
+    }
+
 
     // --- Global Event Listeners ---
     modal.addEventListener("click", (e) => {
@@ -1448,7 +1529,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (error.code === 'auth/unauthorized-domain') {
                 const currentDomain = location.hostname;
                 showMessageModal(
-                    `Firebase is blocking this app's domain. You must add this domain to your Firebase project's "Authorized domains" list.<br><br><strong class="text-gray-800 dark:text-rp-text">Domain to add:</strong><br><code class="bg-gray-200 text-cyan-700 px-2 py-1 rounded-md block mt-2 dark:bg-rp-overlay dark:text-rp-foam">${currentDomain}</code><br><br><strong>How to fix:</strong><B R>1. Go to your Firebase Console<br>2. Go to Authentication > Settings<br>3. Click 'Authorized domains'<br>4. Click 'Add domain' and paste the code above.`, 
+                    `Firebase is blocking this app's domain. You must add this domain to your Firebase project's "Authorized domains" list.<br><br><strong class="text-text-primary">Domain to add:</strong><br><code class="bg-bg-card-secondary text-accent-primary px-2 py-1 rounded-md block mt-2">${currentDomain}</code><br><br><strong>How to fix:</strong><B R>1. Go to your Firebase Console<br>2. Go to Authentication > Settings<br>3. Click 'Authorized domains'<br>4. Click 'Add domain' and paste the code above.`, 
                     "Sign-In Failed (Action Required)"
                 );
             } else {
@@ -1474,26 +1555,36 @@ document.addEventListener("DOMContentLoaded", () => {
     joinCircleButton.addEventListener("click", showJoinCircleModal);
     editAliasButton.addEventListener("click", showAliasModal);
 
+    // NEW: "The Locker" Listener
+    viewArchiveButton.addEventListener("click", showArchivedGoalsModal);
+    
+    // NEW: "Carcosa" Focus Mode Listener
+    focusModeButton.addEventListener("click", () => {
+        document.body.classList.toggle('focus-mode-active');
+    });
+
     // Attach Pomodoro Listeners
     pomodoroButton.addEventListener("click", () => setTimer('pomodoro'));
     shortBreakButton.addEventListener("click", () => setTimer('short'));
     longBreakButton.addEventListener("click", () => setTimer('long'));
     startTimerButton.addEventListener("click", startStopTimer);
     resetTimerButton.addEventListener("click", resetTimer);
-    timerSettingsButton.addEventListener("click", showTimerSettingsModal); // NEW
+    timerSettingsButton.addEventListener("click", showTimerSettingsModal);
 
     // Attach YouTube Player Listener
     ytLoadButton.addEventListener("click", handleLoadYoutubeVideo);
 
-    // Attach Theme Toggle Listener
-    themeToggleButton.addEventListener('click', toggleTheme);
+    // NEW: Attach Theme Selector Listener
+    themeSelector.addEventListener('change', (e) => {
+        setTheme(e.target.value);
+    });
 
     // --- INIT ---
     // Set initial theme from localStorage
-    const savedTheme = localStorage.getItem('theme') || 'light';
+    const savedTheme = localStorage.getItem('theme') || 'theme-light';
     setTheme(savedTheme);
     
-    // NEW: Load saved timer settings from localStorage
+    // Load saved timer settings from localStorage
     const savedTimerSettings = localStorage.getItem('timerSettings');
     if (savedTimerSettings) {
         timerSettings = JSON.parse(savedTimerSettings);
@@ -1501,7 +1592,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Set initial timer state
     setTimer('pomodoro');
     
-    // NEW: Set initial cat quote
+    // Set initial cat quote
     if (catQuoteDisplay) {
         const quote = catQuotes[Math.floor(Math.random() * catQuotes.length)];
         catQuoteDisplay.textContent = `"${quote}"`;
