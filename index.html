@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="bg-gray-100">
+<html lang="en" class=""> <!-- Class 'dark' will be added here by JS -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,12 +9,28 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
+            darkMode: 'class', // Enable class-based dark mode
             theme: {
                 extend: {
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                     },
                     colors: {
+                        // NEW: Rosé Pine Palette
+                        'rp-base': '#191724',
+                        'rp-surface': '#1f1d2e',
+                        'rp-overlay': '#26233a',
+                        'rp-muted': '#6e6a86',
+                        'rp-subtle': '#908caa',
+                        'rp-text': '#e0def4',
+                        'rp-love': '#eb6f92',
+                        'rp-gold': '#f6c177',
+                        'rp-rose': '#ebbcba',
+                        'rp-pine': '#31748f',
+                        'rp-foam': '#9ccfd8',
+                        'rp-iris': '#c4a7e7',
+
+                        // Original Cyan for light mode
                         cyan: {
                             50: '#ecfeff',
                             100: '#cffafe',
@@ -28,39 +44,27 @@
                             900: '#164e63',
                             950: '#083344',
                         },
-                        gray: {
-                            50: '#f9fafb',
-                            100: '#f3f4f6',
-                            200: '#e5e7eb',
-                            300: '#d1d5db',
-                            400: '#9ca3af',
-                            500: '#6b7280',
-                            600: '#4b5563',
-                            700: '#374151',
-                            800: '#1f2937',
-                            900: '#111827',
-                            950: '#030712',
-                        }
                     }
                 },
             },
         }
     </script>
 </head>
-<body class="text-gray-900">
+<body class="text-gray-900 bg-gray-100 dark:bg-rp-base dark:text-rp-text transition-colors duration-300">
     <!-- Main App Container -->
     <div id="app-container">
 
         <!-- Login View -->
-        <div id="login-view" class="flex flex-col justify-center items-center min-h-screen p-6 bg-gray-900">
+        <div id="login-view" class="flex flex-col justify-center items-center min-h-screen p-6 bg-rp-base">
             <div class="text-center">
                 <h1 class="text-5xl font-extrabold text-white mb-4">
-                    Welcome to <span class="text-cyan-400">CircleUp</span>
+                    Welcome to <span class="text-rp-foam">CircleUp</span>
                 </h1>
-                <p class="text-xl text-gray-400 mb-10">
-                    Stay accountable. Achieve your goals. Together.
+                <!-- NEW: Cat Quote Display -->
+                <p id="cat-quote-display" class="text-xl text-rp-subtle mb-10 italic">
+                    "Stay pawsitive!"
                 </p>
-                <button id="login-button" class="animated-button bg-cyan-500 text-white font-bold py-4 px-8 rounded-xl text-lg hover:bg-cyan-600 transition duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/50">
+                <button id="login-button" class="animated-button bg-rp-foam text-rp-base font-bold py-4 px-8 rounded-xl text-lg hover:bg-opacity-80 transition duration-300 transform hover:scale-105 shadow-lg hover:shadow-rp-foam/30">
                     Sign in with Google
                 </button>
             </div>
@@ -69,14 +73,27 @@
         <!-- Dashboard View (Hidden by default) -->
         <div id="dashboard-view" class="hidden min-h-screen flex-col">
             <!-- Header -->
-            <header class="sticky top-0 z-40 w-full flex-shrink-0 backdrop-blur-md bg-white/80 border-b border-gray-200">
+            <header class="sticky top-0 z-40 w-full flex-shrink-0 backdrop-blur-md bg-white/80 border-b border-gray-200 dark:bg-rp-surface/80 dark:border-rp-overlay">
                 <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-                    <div class="text-2xl font-bold text-gray-900">
-                        Circle<span class="text-cyan-600">Up</span>
+                    <div class="text-2xl font-bold text-gray-900 dark:text-rp-text">
+                        Circle<span class="text-cyan-600 dark:text-rp-foam">Up</span>
                     </div>
                     <div class="flex items-center gap-4">
-                        <span id="user-display-name" class="text-sm font-semibold text-gray-700"></span>
-                        <button id="logout-button" class="animated-button bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300 transform hover:scale-105">
+                        <span id="user-display-name" class="text-sm font-semibold text-gray-700 dark:text-rp-subtle"></span>
+                        
+                        <!-- Theme Toggle Button -->
+                        <button id="theme-toggle-button" class="animated-button w-10 h-10 flex justify-center items-center rounded-full text-gray-700 dark:text-rp-subtle hover:bg-gray-200 dark:hover:bg-rp-overlay">
+                            <!-- Moon Icon (default) -->
+                            <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                            <!-- Sun Icon (hidden by default) -->
+                            <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-15.66l-.707.707M4.04 19.96l-.707.707M21 12h-1M4 12H3m16.96-7.96l-.707-.707M3.34 19.96l-.707-.707M12 21a9 9 0 110-18 9 9 0 010 18z" />
+                            </svg>
+                        </button>
+
+                        <button id="logout-button" class="animated-button bg-cyan-500 text-white dark:bg-rp-love dark:text-rp-base font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 dark:hover:bg-opacity-80 transition duration-300 transform hover:scale-105">
                             Logout
                         </button>
                     </div>
@@ -87,15 +104,15 @@
             <main class="container mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 <!-- Left Column: My Progress -->
-                <section class="flex flex-col bg-white rounded-2xl shadow-lg p-6 space-y-5">
+                <section class="flex flex-col bg-white rounded-2xl shadow-lg p-6 space-y-5 dark:bg-rp-surface">
                     <div class="flex justify-between items-center flex-shrink-0">
-                        <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-rp-text">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-500 dark:text-rp-foam" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             My Progress
                         </h2>
-                        <button id="add-goal-button" class="animated-button bg-cyan-500 w-10 h-10 flex justify-center items-center text-white font-bold text-2xl rounded-full hover:bg-cyan-600 transition duration-300 transform hover:scale-110 flex-shrink-0 shadow-md hover:shadow-lg">+</button>
+                        <button id="add-goal-button" class="animated-button bg-cyan-500 w-10 h-10 flex justify-center items-center text-white font-bold text-2xl rounded-full hover:bg-cyan-600 transition duration-300 transform hover:scale-110 flex-shrink-0 shadow-md hover:shadow-lg dark:bg-rp-foam dark:text-rp-base dark:hover:bg-opacity-80">+</button>
                     </div>
                     <div id="goals-list" class="space-y-4 pr-2">
                         <!-- Goals will be dynamically injected here -->
@@ -106,13 +123,21 @@
                 <section class="flex flex-col gap-6 lg:col-span-1">
 
                     <!-- Pomodoro Timer -->
-                    <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
-                        <h2 class="flex items-center justify-center gap-2 text-xl font-bold text-gray-900 mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0c-1.657 0-3-.895-3-2s1.343-2 3-2 3-.895 3-2-1.343-2-3-2m0 8c-1.11 0-2.08-.402-2.599-1M12 16v1m0-1v-8" />
-                            </svg>
-                            Pomodoro Timer
-                        </h2>
+                    <div class="bg-white rounded-2xl shadow-lg p-6 text-center dark:bg-rp-surface">
+                        <!-- NEW: Header with Settings Button -->
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-rp-text">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-500 dark:text-rp-iris" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0c-1.657 0-3-.895-3-2s1.343-2 3-2 3-.895 3-2-1.343-2-3-2m0 8c-1.11 0-2.08-.402-2.599-1M12 16v1m0-1v-8" />
+                                </svg>
+                                Pomodoro Timer
+                            </h2>
+                            <button id="timer-settings-button" class="timer-settings-button">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106A1.532 1.532 0 0111.49 3.17zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
 
                         <div class="space-x-2 mb-4">
                             <button id="pomodoro-button" class="timer-button timer-button-active">Pomodoro</button>
@@ -120,45 +145,45 @@
                             <button id="long-break-button" class="timer-button">Long Break</button>
                         </div>
 
-                        <h1 id="timer-display" class="text-7xl font-extrabold text-gray-900 my-4">25:00</h1>
+                        <h1 id="timer-display" class="text-7xl font-extrabold text-gray-900 dark:text-rp-text my-4">25:00</h1>
 
                         <div class="flex gap-4">
-                            <button id="start-timer-button" class="animated-button w-2/3 bg-cyan-500 text-white font-semibold py-3 px-4 rounded-xl hover:bg-cyan-600 transition duration-300 text-lg transform hover:scale-105 shadow-lg hover:shadow-cyan-500/50">
+                            <button id="start-timer-button" class="animated-button w-2/3 bg-cyan-500 text-white font-semibold py-3 px-4 rounded-xl hover:bg-cyan-600 transition duration-300 text-lg transform hover:scale-105 shadow-lg hover:shadow-cyan-500/50 dark:bg-rp-iris dark:text-rp-base dark:hover:bg-opacity-80 dark:shadow-rp-iris/30">
                                 Start
                             </button>
-                            <button id="reset-timer-button" class="animated-button w-1/3 bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-xl hover:bg-gray-300 transition duration-300 text-lg transform hover:scale-105">
+                            <button id="reset-timer-button" class="animated-button w-1/3 bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-xl hover:bg-gray-300 transition duration-300 text-lg transform hover:scale-105 dark:bg-rp-overlay dark:text-rp-subtle dark:hover:bg-rp-muted">
                                 Reset
                             </button>
                         </div>
                     </div>
 
                     <!-- Daily Update Button -->
-                    <div class="bg-white rounded-2xl shadow-lg p-6 flex-shrink-0">
-                        <button id="check-in-button" class="animated-button w-full bg-green-500 text-white font-semibold py-3 px-4 rounded-xl hover:bg-green-600 transition duration-300 text-lg transform hover:scale-105 shadow-lg hover:shadow-green-500/50">
+                    <div class="bg-white rounded-2xl shadow-lg p-6 flex-shrink-0 dark:bg-rp-surface">
+                        <button id="check-in-button" class="animated-button w-full bg-green-500 text-white font-semibold py-3 px-4 rounded-xl hover:bg-green-600 transition duration-300 text-lg transform hover:scale-105 shadow-lg hover:shadow-green-500/50 dark:bg-rp-pine dark:text-rp-base dark:hover:bg-opacity-80 dark:shadow-rp-pine/30">
                             Submit Daily Update
                         </button>
                     </div>
 
                     <!-- Accountability & Feed Card -->
-                    <div class="bg-white rounded-2xl shadow-lg">
+                    <div class="bg-white rounded-2xl shadow-lg dark:bg-rp-surface">
                         <!-- Accountability Status -->
-                        <div class="p-6 border-b border-gray-200">
-                            <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900 mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <div class="p-6 border-b border-gray-200 dark:border-rp-overlay">
+                            <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-rp-text mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-500 dark:text-rp-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 Accountability Status
                             </h2>
                             <div id="accountability-status-list" class="space-y-3 pr-1">
-                                <p class="text-sm text-gray-500">Loading status...</p>
+                                <p class="text-sm text-gray-500 dark:text-rp-muted">Loading status...</p>
                                 <!-- Status will be injected here -->
                             </div>
                         </div>
 
                         <!-- Circle Feed -->
                         <div class="p-6">
-                            <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900 mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-rp-text mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-500 dark:text-rp-rose" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-2.13l-2.114 2.114a3 3 0 00-2.12 5.122V20M8 20H3v-2a3 3 0 015.356-2.13l2.114 2.114a3 3 0 012.12 5.122V20M12 11a3 3 0 100-6 3 3 0 000 6z" />
                                 </svg>
                                 Circle Feed
@@ -171,62 +196,63 @@
                 </section>
                 
                 <!-- Right Column: Circles & Members -->
-                <section class="flex flex-col bg-white rounded-2xl shadow-lg p-6 space-y-5">
+                <section class="flex flex-col bg-white rounded-2xl shadow-lg p-6 space-y-5 dark:bg-rp-surface">
                     
                     <!-- My Info -->
-                    <div class="pb-3 border-b border-gray-200">
+                    <div class="pb-3 border-b border-gray-200 dark:border-rp-overlay">
                         <div class="flex justify-between items-center mb-2">
-                            <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <h2 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-rp-text">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-cyan-500 dark:text-rp-foam" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
                                 My Info
                             </h2>
-                            <button id="edit-alias-button" class="text-sm font-medium text-cyan-600 hover:text-cyan-700">Edit</button>
+                            <button id="edit-alias-button" class="text-sm font-medium text-cyan-600 dark:text-rp-foam dark:hover:text-rp-foam/80 hover:text-cyan-700">Edit</button>
                         </div>
-                        <label class="text-sm text-gray-500">Share your User ID to be invited:</label>
-                        <p id="my-user-id" class="text-sm text-cyan-700 font-medium bg-cyan-50 rounded-md p-2 mt-2 break-words">Not logged in</p>
+                        <!-- CHANGED: Now shows Circle ID -->
+                        <label class="text-sm text-gray-500 dark:text-rp-muted">Share your current Circle ID to invite:</label>
+                        <p id="current-circle-id-display" class="text-sm text-cyan-700 font-medium bg-cyan-50 rounded-md p-2 mt-2 break-words dark:bg-rp-base dark:text-rp-foam">No circle selected</p>
                     </div>
 
                     <!-- Circle Controls -->
                     <div class="flex gap-4 pt-3">
-                        <button id="create-circle-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300 transform hover:scale-105">
+                        <button id="create-circle-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300 transform hover:scale-105 dark:bg-rp-foam dark:text-rp-base dark:hover:bg-opacity-80">
                             Create
                         </button>
-                        <button id="join-circle-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300 transform hover:scale-105">
+                        <button id="join-circle-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300 transform hover:scale-105 dark:bg-rp-overlay dark:text-rp-subtle dark:hover:bg-rp-muted">
                             Join
                         </button>
                     </div>
 
                     <!-- My Circles List -->
-                    <div class="pt-3 border-t border-gray-200">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-3">My Circles</h2>
+                    <div class="pt-3 border-t border-gray-200 dark:border-rp-overlay">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-rp-text mb-3">My Circles</h2>
                         <div id="circles-list" class="space-y-2 pr-1 max-h-48 overflow-y-auto">
                             <!-- Circles will be dynamically injected here -->
                         </div>
                     </div>
 
                     <!-- Circle Members List -->
-                    <div class="pt-3 border-t border-gray-200">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-3">Circle Members</h2>
+                    <div class="pt-3 border-t border-gray-200 dark:border-rp-overlay">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-rp-text mb-3">Circle Members</h2>
                         <div id="circle-members-list" class="space-y-2 pr-1 max-h-48 overflow-y-auto">
                             <!-- Members will be dynamically injected here -->
                         </div>
                     </div>
 
                     <!-- Study Vibe -->
-                    <div class="pt-3 border-t border-gray-200">
-                        <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-500" viewBox="0 0 20 20" fill="currentColor">
+                    <div class="pt-3 border-t border-gray-200 dark:border-rp-overlay">
+                        <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-rp-text mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-500 dark:text-rp-love" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3V3z" />
                             </svg>
                             Study Vibe
                         </h2>
-                        <!-- NEW: YouTube Player -->
+                        <!-- YouTube Player -->
                         <div class="aspect-video w-full mb-3">
                             <iframe id="yt-player" class="w-full h-full rounded-lg" src="https://www.youtube.com/embed/jfKfPfyJRdk" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                         </div>
-                        <!-- NEW: YouTube Input -->
+                        <!-- YouTube Input -->
                         <div class="flex gap-2">
                             <input type="text" id="yt-link-input" class="yt-input" placeholder="Paste YouTube link...">
                             <button id="yt-load-button" class="yt-load-button">Load</button>
@@ -239,7 +265,7 @@
 
         <!-- Global Modal -->
         <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex justify-center items-center z-50 p-6">
-            <div id="modal-content" class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div id="modal-content" class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto dark:bg-rp-surface">
                 <!-- Modal content will be injected here -->
             </div>
         </div>

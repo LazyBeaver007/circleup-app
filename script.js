@@ -43,6 +43,19 @@ const firebaseConfig = {
   measurementId: "G-RB97E70HZP"
 };
 
+// NEW: Cat Quotes
+const catQuotes = [
+    "Stay pawsitive!",
+    "One paw at a time.",
+    "You're purr-fectly capable!",
+    "Don't fur-get to take a break!",
+    "Believe in your-shelf, you've got this!",
+    "Looking good, feline good!",
+    "You've got to be kitten me, you're doing great!",
+    "Don't procrastinate, procrastin-later.",
+    "Seize the meow-ment!"
+];
+
 let app, auth, db, analytics;
 let currentUserId = null;
 let userEmail = null;
@@ -52,6 +65,13 @@ let feedUnsubscribe = null;
 let userGoals = [];
 let userCircles = []; 
 let currentCircleId = null; 
+
+// NEW: Timer settings object with defaults
+let timerSettings = {
+    pomodoro: 1500, // 25 minutes
+    short: 300,     // 5 minutes
+    long: 900       // 15 minutes
+};
 
 // Initialize Firebase (Top Level)
 try {
@@ -76,7 +96,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const loginButton = document.getElementById("login-button");
     const logoutButton = document.getElementById("logout-button");
     const userDisplayNameElement = document.getElementById("user-display-name");
-    const myUserIdElement = document.getElementById("my-user-id");
+    const currentCircleIdDisplayElement = document.getElementById("current-circle-id-display");
+    
+    // NEW: Cat quote display
+    const catQuoteDisplay = document.getElementById("cat-quote-display");
+    
     const modal = document.getElementById("modal");
     const modalContent = document.getElementById("modal-content");
     const addGoalButton = document.getElementById("add-goal-button");
@@ -98,17 +122,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const startTimerButton = document.getElementById("start-timer-button");
     const resetTimerButton = document.getElementById("reset-timer-button");
     const timerButtons = [pomodoroButton, shortBreakButton, longBreakButton];
+    // NEW: Timer settings button
+    const timerSettingsButton = document.getElementById("timer-settings-button");
 
-    // --- NEW: YouTube Player DOM References ---
+    // --- YouTube Player DOM References ---
     const ytPlayer = document.getElementById("yt-player");
     const ytLinkInput = document.getElementById("yt-link-input");
     const ytLoadButton = document.getElementById("yt-load-button");
 
+    // --- Theme Toggle DOM References ---
+    const themeToggleButton = document.getElementById("theme-toggle-button");
+    const themeIconDark = document.getElementById("theme-icon-dark");
+    const themeIconLight = document.getElementById("theme-icon-light");
+
     // --- Pomodoro State ---
     let timerInterval = null;
     let timerMode = 'pomodoro';
-    let timerSeconds = 1500; // 25 minutes
+    let timerSeconds = timerSettings.pomodoro; // Use default
     let isRunning = false;
+
+    // --- Theme Toggle Functions ---
+    const setTheme = (theme) => {
+        localStorage.setItem('theme', theme);
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            themeIconDark.classList.add('hidden');
+            themeIconLight.classList.remove('hidden');
+        } else {
+            document.documentElement.classList.remove('dark');
+            themeIconDark.classList.remove('hidden');
+            themeIconLight.classList.add('hidden');
+        }
+    };
+
+    const toggleTheme = () => {
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+    };
 
     // --- Pomodoro Functions ---
     function updateTimerDisplay() {
@@ -128,13 +179,16 @@ document.addEventListener("DOMContentLoaded", () => {
         // Update active button style
         timerButtons.forEach(btn => btn.classList.remove('timer-button-active'));
         if (mode === 'pomodoro') {
-            timerSeconds = 1500;
+            // UPDATED: Read from settings object
+            timerSeconds = timerSettings.pomodoro;
             pomodoroButton.classList.add('timer-button-active');
         } else if (mode === 'short') {
-            timerSeconds = 300;
+            // UPDATED: Read from settings object
+            timerSeconds = timerSettings.short;
             shortBreakButton.classList.add('timer-button-active');
         } else if (mode === 'long') {
-            timerSeconds = 900;
+            // UPDATED: Read from settings object
+            timerSeconds = timerSettings.long;
             longBreakButton.classList.add('timer-button-active');
         }
         updateTimerDisplay();
@@ -169,8 +223,79 @@ document.addEventListener("DOMContentLoaded", () => {
     function resetTimer() {
         setTimer(timerMode); // Reset to the current active mode
     }
+    
+    // NEW: Show Timer Settings Modal
+    function showTimerSettingsModal() {
+        const modalHTML = `
+            <form id="timer-settings-form">
+                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Timer Settings</h3>
+                <div class="mb-4">
+                    <label for="pomo-mins" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Pomodoro (minutes)</label>
+                    <input type="number" id="pomo-mins" name="pomodoro" class="modal-input" required min="1" value="${timerSettings.pomodoro / 60}">
+                </div>
+                <div class="mb-4">
+                    <label for="short-mins" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Short Break (minutes)</label>
+                    <input type="number" id="short-mins" name="short" class="modal-input" required min="1" value="${timerSettings.short / 60}">
+                </div>
+                <div class="mb-4">
+                    <label for="long-mins" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Long Break (minutes)</label>
+                    <input type="number" id="long-mins" name="long" class="modal-input" required min="1" value="${timerSettings.long / 60}">
+                </div>
+                <div class="flex gap-4">
+                    <button type="button" id="modal-cancel-button" class="modal-button-secondary">
+                        Cancel
+                    </button>
+                    <button type="submit" id="modal-submit-button" class="modal-button-primary">
+                        Save
+                    </button>
+                </div>
+            </form>
+        `;
+        showModal(modalHTML);
+        // Apply dark mode styles to modal inputs
+        document.querySelectorAll('.modal-input').forEach(el => {
+            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
+        });
+        document.querySelectorAll('.modal-button-secondary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
+        });
+        document.querySelectorAll('.modal-button-primary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-iris', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
+        });
 
-    // --- NEW: YouTube Player Functions ---
+        document.getElementById("timer-settings-form").addEventListener("submit", handleTimerSettingsSubmit);
+        document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
+    }
+    
+    // NEW: Handle Timer Settings Submit
+    function handleTimerSettingsSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        
+        // Get values in minutes, convert to seconds
+        const newPomodoro = parseInt(form.pomodoro.value) * 60;
+        const newShort = parseInt(form.short.value) * 60;
+        const newLong = parseInt(form.long.value) * 60;
+
+        if (newPomodoro < 60 || newShort < 60 || newLong < 60) {
+            showMessageModal("All times must be at least 1 minute.", "Invalid Input");
+            return;
+        }
+
+        // Update global state
+        timerSettings.pomodoro = newPomodoro;
+        timerSettings.short = newShort;
+        timerSettings.long = newLong;
+        
+        // Save to localStorage
+        localStorage.setItem('timerSettings', JSON.stringify(timerSettings));
+        
+        // Apply new settings to the timer
+        setTimer(timerMode); 
+        closeModal();
+    }
+
+    // --- YouTube Player Functions ---
     function parseYoutubeId(url) {
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
         const match = url.match(regExp);
@@ -213,9 +338,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showMessageModal(message, title = "Notification") {
         const modalHTML = `
-            <h3 class="text-xl font-semibold mb-4 text-gray-900">${title}</h3>
-            <p class="text-gray-600 mb-6">${message}</p>
-            <button id="modal-close-button" class="w-full bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
+            <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-rp-text">${title}</h3>
+            <p class="text-gray-600 dark:text-rp-subtle mb-6">${message}</p>
+            <button id="modal-close-button" class="w-full bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300 dark:bg-rp-foam dark:text-rp-base dark:hover:bg-opacity-80">
                 Close
             </button>
         `;
@@ -248,7 +373,6 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("User is signed in:", user.uid);
             currentUserId = user.uid;
             userEmail = user.email || (user.isAnonymous ? "anonymous" : "user");
-            myUserIdElement.textContent = currentUserId;
             
             loginView.classList.add("hidden");
             dashboardView.classList.remove("hidden");
@@ -265,7 +389,7 @@ document.addEventListener("DOMContentLoaded", () => {
             userDisplayName = null;
             currentCircleId = null;
             userDisplayNameElement.textContent = "";
-            myUserIdElement.textContent = "Not logged in";
+            currentCircleIdDisplayElement.textContent = "Not logged in"; 
 
             dashboardView.classList.add("hidden");
             dashboardView.classList.remove("flex");
@@ -344,37 +468,51 @@ document.addEventListener("DOMContentLoaded", () => {
         ytPlayer.src = `https://www.youtube.com/embed/${lastVideoId}`;
         
         userDisplayNameElement.textContent = userDisplayName;
+        
+        currentCircleIdDisplayElement.textContent = currentCircleId || "No circle selected";
+        
         renderCircleList();
         
         if (currentCircleId) {
             loadCircleFeed();
             loadCircleMembers(); 
         } else {
-            feedList.innerHTML = `<p class="text-gray-500 text-sm">Join or create a circle to see a feed.</p>`;
-            circleMembersList.innerHTML = `<p class="text-gray-500 text-sm">No circle selected.</p>`;
-            accountabilityStatusList.innerHTML = `<p class="text-gray-500 text-sm">Select a circle.</p>`;
+            feedList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">Join or create a circle to see a feed.</p>`;
+            circleMembersList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">No circle selected.</p>`;
+            accountabilityStatusList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">Select a circle.</p>`;
         }
     }
 
     function showAliasModal() {
         const modalHTML = `
             <form id="alias-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900">Set Your Alias</h3>
+                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Set Your Alias</h3>
                 <div class="mb-4">
-                    <label for="display-name" class="block text-sm font-medium text-gray-600 mb-2">Display Name</label>
-                    <input type="text" id="display-name" name="name" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required value="${userDisplayName || ''}">
+                    <label for="display-name" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Display Name</label>
+                    <input type="text" id="display-name" name="name" class="modal-input" required value="${userDisplayName || ''}">
                 </div>
                 <div class="flex gap-4">
-                    <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
+                    <button type="button" id="modal-cancel-button" class="modal-button-secondary">
                         Cancel
                     </button>
-                    <button type="submit" id="modal-submit-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
+                    <button type="submit" id="modal-submit-button" class="modal-button-primary">
                         Save
                     </button>
                 </div>
             </form>
         `;
         showModal(modalHTML);
+        // Apply dark mode styles to modal inputs
+        document.querySelectorAll('.modal-input').forEach(el => {
+            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
+        });
+        document.querySelectorAll('.modal-button-secondary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
+        });
+        document.querySelectorAll('.modal-button-primary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-love', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
+        });
+
         document.getElementById("alias-form").addEventListener("submit", handleAliasSubmit);
         document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
     }
@@ -408,15 +546,15 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderCircleList() {
         circlesList.innerHTML = "";
         if (userCircles.length === 0) {
-            circlesList.innerHTML = `<p class="text-gray-500 text-sm">You are not in any circles.</p>`;
+            circlesList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">You are not in any circles.</p>`;
             return;
         }
 
         userCircles.forEach(circle => {
             const isActive = circle.id === currentCircleId;
             const buttonClass = isActive
-                ? "bg-cyan-500 text-white shadow-md"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200";
+                ? "bg-cyan-500 text-white shadow-md dark:bg-rp-foam dark:text-rp-base"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-rp-overlay dark:text-rp-subtle dark:hover:bg-rp-muted";
             
             const circleElement = document.createElement("div");
             circleElement.className = "flex items-center gap-2";
@@ -454,6 +592,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function handleSwitchCircle(circleId) {
         currentCircleId = circleId;
         console.log("Switched to circle:", currentCircleId);
+        currentCircleIdDisplayElement.textContent = currentCircleId; 
         renderCircleList(); 
         loadCircleFeed(); 
         loadCircleMembers();
@@ -461,19 +600,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showCircleInfoModal(id, name) {
         const modalHTML = `
-            <h3 class="text-xl font-semibold mb-4 text-gray-900">Circle Info: ${name}</h3>
-            <p class="text-sm text-gray-600 mb-2">Share this ID with friends so they can join this circle:</p>
-            <input type="text" readonly id="circle-id-share" value="${id}" class="w-full bg-gray-100 border border-gray-300 text-cyan-700 font-medium rounded-lg px-3 py-2 select-all mb-4">
+            <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-rp-text">Circle Info: ${name}</h3>
+            <p class="text-sm text-gray-600 dark:text-rp-subtle mb-2">Share this ID with friends so they can join this circle:</p>
+            <input type="text" readonly id="circle-id-share" value="${id}" class="modal-input w-full bg-gray-100 border border-gray-300 text-cyan-700 font-medium rounded-lg px-3 py-2 select-all mb-4 dark:bg-rp-base dark:border-rp-muted dark:text-rp-foam">
             <div class="flex gap-4">
-                <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
+                <button type="button" id="modal-cancel-button" class="modal-button-secondary">
                     Close
                 </button>
-                <button type="button" id="copy-circle-id-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
+                <button type="button" id="copy-circle-id-button" class="modal-button-primary">
                     Copy ID
                 </button>
             </div>
         `;
         showModal(modalHTML);
+        
+        // Apply dark mode styles to modal buttons
+        document.querySelectorAll('.modal-button-secondary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
+        });
+        document.querySelectorAll('.modal-button-primary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-love', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
+        });
 
         document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
         
@@ -491,22 +638,32 @@ document.addEventListener("DOMContentLoaded", () => {
     function showCreateCircleModal() {
         const modalHTML = `
             <form id="create-circle-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900">Create New Circle</h3>
+                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Create New Circle</h3>
                 <div class="mb-4">
-                    <label for="circle-name" class="block text-sm font-medium text-gray-600 mb-2">Circle Name</label>
-                    <input type="text" id="circle-name" name="name" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required placeholder="e.g., DSA Grinders">
+                    <label for="circle-name" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Circle Name</label>
+                    <input type="text" id="circle-name" name="name" class="modal-input" required placeholder="e.g., DSA Grinders">
                 </div>
                 <div class="flex gap-4">
-                    <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
+                    <button type="button" id="modal-cancel-button" class="modal-button-secondary">
                         Cancel
                     </button>
-                    <button type="submit" id="modal-submit-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
+                    <button type="submit" id="modal-submit-button" class="modal-button-primary">
                         Create
                     </button>
                 </div>
             </form>
         `;
         showModal(modalHTML);
+        // Apply dark mode styles to modal inputs/buttons
+        document.querySelectorAll('.modal-input').forEach(el => {
+            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
+        });
+        document.querySelectorAll('.modal-button-secondary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
+        });
+        document.querySelectorAll('.modal-button-primary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-foam', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
+        });
         document.getElementById("create-circle-form").addEventListener("submit", handleCreateCircleSubmit);
         document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
     }
@@ -552,22 +709,32 @@ document.addEventListener("DOMContentLoaded", () => {
     function showJoinCircleModal() {
         const modalHTML = `
             <form id="join-circle-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900">Join a Circle</h3>
+                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Join a Circle</h3>
                 <div class="mb-4">
-                    <label for="circle-id" class="block text-sm font-medium text-gray-600 mb-2">Circle ID</label>
-                    <input type="text" id="circle-id" name="id" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required placeholder="Paste Circle ID here">
+                    <label for="circle-id" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Circle ID</label>
+                    <input type="text" id="circle-id" name="id" class="modal-input" required placeholder="Paste Circle ID here">
                 </div>
                 <div class="flex gap-4">
-                    <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
+                    <button type="button" id="modal-cancel-button" class="modal-button-secondary">
                         Cancel
                     </button>
-                    <button type="submit" id="modal-submit-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
+                    <button type="submit" id="modal-submit-button" class="modal-button-primary">
                         Join
                     </button>
                 </div>
             </form>
         `;
         showModal(modalHTML);
+        // Apply dark mode styles to modal inputs/buttons
+        document.querySelectorAll('.modal-input').forEach(el => {
+            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
+        });
+        document.querySelectorAll('.modal-button-secondary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
+        });
+        document.querySelectorAll('.modal-button-primary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-foam', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
+        });
         document.getElementById("join-circle-form").addEventListener("submit", handleJoinCircleSubmit);
         document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
     }
@@ -626,8 +793,8 @@ document.addEventListener("DOMContentLoaded", () => {
     async function loadCircleMembers() {
         if (!currentCircleId) return;
         
-        circleMembersList.innerHTML = `<p class="text-gray-500 text-sm">Loading members...</p>`;
-        accountabilityStatusList.innerHTML = `<p class="text-gray-500 text-sm">Loading status...</p>`; 
+        circleMembersList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">Loading members...</p>`;
+        accountabilityStatusList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">Loading status...</p>`; 
 
         try {
             const circleRef = doc(db, `circles/${currentCircleId}`);
@@ -639,8 +806,8 @@ document.addEventListener("DOMContentLoaded", () => {
             
             const memberIds = circleSnap.data().members || [];
             if (memberIds.length === 0) {
-                 circleMembersList.innerHTML = `<p class="text-gray-500 text-sm">No members found.</p>`;
-                 accountabilityStatusList.innerHTML = `<p class="text-gray-500 text-sm">No members.</p>`; 
+                 circleMembersList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">No members found.</p>`;
+                 accountabilityStatusList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">No members.</p>`; 
                  return;
             }
 
@@ -672,7 +839,7 @@ document.addEventListener("DOMContentLoaded", () => {
         members.forEach(member => {
             const isMe = member.id === currentUserId;
             const memberElement = document.createElement("button");
-            memberElement.className = "animated-button w-full text-left bg-gray-100 text-gray-700 font-medium py-2 px-3 rounded-lg hover:bg-gray-200 transition duration-300";
+            memberElement.className = "animated-button w-full text-left bg-gray-100 text-gray-700 font-medium py-2 px-3 rounded-lg hover:bg-gray-200 transition duration-300 dark:bg-rp-overlay dark:text-rp-subtle dark:hover:bg-rp-muted";
             memberElement.textContent = `${member.name} ${isMe ? "(You)" : ""}`;
             memberElement.dataset.memberId = member.id;
             memberElement.dataset.memberName = member.name;
@@ -745,7 +912,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Render the lists
             if (membersSafe.length > 0) {
                 const safeHeader = document.createElement('h4');
-                safeHeader.className = "text-sm font-semibold text-green-600 mb-2";
+                safeHeader.className = "text-sm font-semibold text-green-600 dark:text-rp-foam mb-2";
                 safeHeader.textContent = "Up-to-Date";
                 accountabilityStatusList.appendChild(safeHeader);
                 
@@ -763,7 +930,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (membersMissed.length > 0) {
                 const missedHeader = document.createElement('h4');
-                missedHeader.className = `text-sm font-semibold text-red-600 mb-2 ${membersSafe.length > 0 ? 'mt-4' : ''}`;
+                missedHeader.className = `text-sm font-semibold text-red-600 dark:text-rp-love mb-2 ${membersSafe.length > 0 ? 'mt-4' : ''}`;
                 missedHeader.textContent = "Missed Update";
                 accountabilityStatusList.appendChild(missedHeader);
 
@@ -780,7 +947,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             
             if (membersSafe.length === 0 && membersMissed.length === 0) {
-                 accountabilityStatusList.innerHTML = `<p class="text-gray-500 text-sm">No members in this circle.</p>`;
+                 accountabilityStatusList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">No members in this circle.</p>`;
             }
 
         } catch (error) {
@@ -791,11 +958,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function showMemberGoalsModal(memberId, memberName) {
         const modalHTML = `
-            <h3 class="text-xl font-semibold mb-4 text-gray-900">Goals for ${memberName}</h3>
+            <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-rp-text">Goals for ${memberName}</h3>
             <div id="member-goals-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-                <p class="text-gray-500">Loading goals...</p>
+                <p class="text-gray-500 dark:text-rp-muted">Loading goals...</p>
             </div>
-            <button id="modal-close-button" class="animated-button mt-6 w-full bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
+            <button id="modal-close-button" class="animated-button mt-6 w-full bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300 dark:bg-rp-foam dark:text-rp-base dark:hover:bg-opacity-80">
                 Close
             </button>
         `;
@@ -808,7 +975,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const goalsSnap = await getDocs(goalsRef);
 
             if (goalsSnap.empty) {
-                memberGoalsList.innerHTML = `<p class="text-gray-500">${memberName} hasn't added any goals yet.</p>`;
+                memberGoalsList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted">${memberName} hasn't added any goals yet.</p>`;
                 return;
             }
             
@@ -819,16 +986,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 const total = Number(goal.total);
                 const percentage = total > 0 ? (current / total) * 100 : 0;
                 
-                let progressBarColor = "bg-cyan-500";
-                if (percentage >= 100) progressBarColor = "bg-green-500";
-                else if (percentage >= 50) progressBarColor = "bg-yellow-500";
+                let progressBarColor = "bg-cyan-500 dark:bg-rp-foam";
+                if (percentage >= 100) progressBarColor = "bg-green-500 dark:bg-rp-pine";
+                else if (percentage >= 50) progressBarColor = "bg-yellow-500 dark:bg-rp-gold";
 
                 const goalElement = document.createElement("div");
-                goalElement.className = "bg-gray-100 p-3 rounded-lg";
+                goalElement.className = "bg-gray-100 p-3 rounded-lg dark:bg-rp-base";
                 goalElement.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <span class="font-semibold text-gray-800">${goal.title}</span>
-                        <span class="text-gray-500">${current} / ${total}</span>
+                        <span class="font-semibold text-gray-800 dark:text-rp-subtle">${goal.title}</span>
+                        <span class="text-gray-500 dark:text-rp-muted">${current} / ${total}</span>
                     </div>
                     <div class="progress-bar-bg mt-2">
                         <div class="progress-bar-fill ${progressBarColor}" style="width: ${percentage}%"></div>
@@ -867,7 +1034,7 @@ document.addEventListener("DOMContentLoaded", () => {
         goalsList.innerHTML = "";
         
         if (goals.length === 0) {
-            goalsList.innerHTML = `<p class="text-gray-500 text-sm">You haven't added any goals yet. Click the "+" button to get started.</p>`;
+            goalsList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">You haven't added any goals yet. Click the "+" button to get started.</p>`;
             return;
         }
         
@@ -876,23 +1043,23 @@ document.addEventListener("DOMContentLoaded", () => {
             const total = Number(goal.total);
             const percentage = total > 0 ? (current / total) * 100 : 0;
             
-            let progressBarColor = "bg-cyan-500";
-            if (percentage >= 100) progressBarColor = "bg-green-500";
-            else if (percentage >= 75) progressBarColor = "bg-blue-500";
-            else if (percentage >= 50) progressBarColor = "bg-yellow-500";
-            else if (percentage >= 25) progressBarColor = "bg-orange-500";
+            let progressBarColor = "bg-cyan-500 dark:bg-rp-foam";
+            if (percentage >= 100) progressBarColor = "bg-green-500 dark:bg-rp-pine";
+            else if (percentage >= 75) progressBarColor = "bg-blue-500 dark:bg-rp-iris";
+            else if (percentage >= 50) progressBarColor = "bg-yellow-500 dark:bg-rp-gold";
+            else if (percentage >= 25) progressBarColor = "bg-orange-500 dark:bg-rp-rose";
 
             const goalElement = document.createElement("div");
-            goalElement.className = "bg-gray-50 p-4 rounded-xl border border-gray-200";
+            goalElement.className = "bg-gray-50 p-4 rounded-xl border border-gray-200 dark:bg-rp-base dark:border-rp-overlay";
             goalElement.innerHTML = `
                 <div class="flex justify-between items-center">
-                    <span class="font-semibold text-gray-800">${goal.title}</span>
-                    <span class="text-sm font-medium text-gray-500">${current} / ${total}</span>
+                    <span class="font-semibold text-gray-800 dark:text-rp-text">${goal.title}</span>
+                    <span class="text-sm font-medium text-gray-500 dark:text-rp-muted">${current} / ${total}</span>
                 </div>
                 <div class="progress-bar-bg mt-2">
                     <div class="progress-bar-fill ${progressBarColor}" style="width: ${percentage}%"></div>
                 </div>
-                <button data-id="${goal.id}" class="delete-goal-button text-xs text-red-500 hover:text-red-700 font-medium mt-2">
+                <button data-id="${goal.id}" class="delete-goal-button text-xs text-red-500 hover:text-red-700 font-medium mt-2 dark:text-rp-love dark:hover:text-rp-love/80">
                     Delete
                 </button>
             `;
@@ -920,35 +1087,42 @@ document.addEventListener("DOMContentLoaded", () => {
     function showAddGoalModal() {
         const modalHTML = `
             <form id="add-goal-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900">Add New Goal</h3>
-                
+                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Add New Goal</h3>
                 <div class="mb-4">
-                    <label for="goal-title" class="block text-sm font-medium text-gray-600 mb-2">Goal Title</label>
-                    <input type="text" id="goal-title" name="title" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required placeholder="e.g., Leetcode Questions">
+                    <label for="goal-title" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Goal Title</label>
+                    <input type="text" id="goal-title" name="title" class="modal-input" required placeholder="e.g., Leetcode Questions">
                 </div>
-                
                 <div class="flex gap-4 mb-6">
                     <div class="w-1/2">
-                        <label for="goal-current" class="block text-sm font-medium text-gray-600 mb-2">Current</label>
-                        <input type="number" id="goal-current" name="current" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required value="0" min="0">
+                        <label for="goal-current" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Current</label>
+                        <input type="number" id="goal-current" name="current" class="modal-input" required value="0" min="0">
                     </div>
                     <div class="w-1/2">
-                        <label for="goal-total" class="block text-sm font-medium text-gray-600 mb-2">Total</LAbel>
-                        <input type="number" id="goal-total" name="total" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required placeholder="e.g., 150" min="1">
+                        <label for="goal-total" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Total</LAbel>
+                        <input type="number" id="goal-total" name="total" class="modal-input" required placeholder="e.g., 150" min="1">
                     </div>
                 </div>
-                
                 <div class="flex gap-4">
-                    <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
+                    <button type="button" id="modal-cancel-button" class="modal-button-secondary">
                         Cancel
                     </button>
-                    <button type="submit" id="modal-submit-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
+                    <button type="submit" id="modal-submit-button" class="modal-button-primary">
                         Add Goal
                     </button>
                 </div>
             </form>
         `;
         showModal(modalHTML);
+        // Apply dark mode styles to modal inputs/buttons
+        document.querySelectorAll('.modal-input').forEach(el => {
+            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
+        });
+        document.querySelectorAll('.modal-button-secondary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
+        });
+        document.querySelectorAll('.modal-button-primary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-foam', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
+        });
         
         document.getElementById("add-goal-form").addEventListener("submit", handleAddGoalSubmit);
         document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
@@ -1042,46 +1216,57 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const modalHTML = `
             <form id="check-in-form">
-                <h3 class="text-xl font-semibold mb-6 text-gray-900">Submit Daily Update</h3>
+                <h3 class="text-xl font-semibold mb-6 text-gray-900 dark:text-rp-text">Submit Daily Update</h3>
                 
                 <div class="mb-4">
-                    <label for="checkin-goal-select" class="block text-sm font-medium text-gray-600 mb-2">Which goal did you work on?</label>
-                    <select id="checkin-goal-select" name="goalId" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required>
+                    <label for="checkin-goal-select" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Which goal did you work on?</label>
+                    <select id="checkin-goal-select" name="goalId" class="modal-input" required>
                         ${goalOptions}
                     </select>
                 </div>
                 
                 <div class="mb-4">
-                    <label for="checkin-new-value" class="block text-sm font-medium text-gray-600 mb-2">What is your new 'current' value?</label>
-                    <input type="number" id="checkin-new-value" name="newValue" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" required min="0">
+                    <label for="checkin-new-value" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">What is your new 'current' value?</label>
+                    <input type="number" id="checkin-new-value" name="newValue" class="modal-input" required min="0">
                 </div>
 
                 <div class="mb-6">
-                    <label for="checkin-notes" class="block text-sm font-medium text-gray-600 mb-2">What did you do?</label>
-                    <textarea id="checkin-notes" name="notes" class="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" rows="3" placeholder="e.g., 'Finished 2 DSA problems and reviewed graph concepts...'" required></textarea>
+                    <label for="checkin-notes" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">What did you do?</label>
+                    <textarea id="checkin-notes" name="notes" class="modal-input" rows="3" placeholder="e.g., 'Finished 2 DSA problems and reviewed graph concepts...'" required></textarea>
                 </div>
 
                 <div class="mb-4">
-                    <label for="checkin-image" class="block text-sm font-medium text-gray-600 mb-2">Add a Screenshot (Max 1MB)</label>
-                    <input type="file" id="checkin-image" name="image" class="w-full text-sm text-gray-500" accept="image/*">
+                    <label for="checkin-image" class="block text-sm font-medium text-gray-600 dark:text-rp-subtle mb-2">Add a Screenshot (Max 1MB)</label>
+                    <input type="file" id="checkin-image" name="image" class="w-full text-sm text-gray-500 dark:text-rp-subtle" accept="image/*">
                     <div id="image-preview-container" class="mt-2 hidden">
-                        <img id="image-preview" src="#" alt="Image preview" class="max-h-32 rounded-lg border-2 border-gray-300">
+                        <img id="image-preview" src="#" alt="Image preview" class="max-h-32 rounded-lg border-2 border-gray-300 dark:border-rp-overlay">
                     </div>
                 </div>
                 
-                <p class="text-xs text-gray-500 mb-4">Audio recording feature skipped.</p>
+                <p class="text-xs text-gray-500 dark:text-rp-muted mb-4">Audio recording feature skipped.</p>
 
                 <div class="flex gap-4">
-                    <button type="button" id="modal-cancel-button" class="animated-button w-1/2 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-300">
+                    <button type="button" id="modal-cancel-button" class="modal-button-secondary">
                         Cancel
                     </button>
-                    <button type="submit" id="modal-submit-button" class="animated-button w-1/2 bg-cyan-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-cyan-600 transition duration-300">
+                    <button type="submit" id="modal-submit-button" class="modal-button-primary">
                         Submit Update
                     </button>
                 </div>
             </form>
         `;
         showModal(modalHTML);
+
+        // Apply dark mode styles to modal inputs/buttons
+        document.querySelectorAll('.modal-input').forEach(el => {
+            el.classList.add('w-full', 'bg-gray-100', 'border', 'border-gray-300', 'text-gray-900', 'rounded-lg', 'px-3', 'py-2', 'focus:outline-none', 'focus:ring-2', 'focus:ring-cyan-500', 'dark:bg-rp-overlay', 'dark:border-rp-muted', 'dark:text-rp-text', 'dark:focus:ring-rp-love');
+        });
+        document.querySelectorAll('.modal-button-secondary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-gray-200', 'text-gray-800', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-gray-300', 'transition', 'duration-300', 'dark:bg-rp-overlay', 'dark:text-rp-subtle', 'dark:hover:bg-rp-muted');
+        });
+        document.querySelectorAll('.modal-button-primary').forEach(el => {
+            el.classList.add('animated-button', 'w-1/2', 'bg-cyan-500', 'text-white', 'font-semibold', 'py-2', 'px-4', 'rounded-lg', 'hover:bg-cyan-600', 'transition', 'duration-300', 'dark:bg-rp-pine', 'dark:text-rp-base', 'dark:hover:bg-opacity-80');
+        });
 
         document.getElementById("checkin-image").addEventListener("change", handleImagePreview);
         document.getElementById("check-in-form").addEventListener("submit", handleCheckInSubmit);
@@ -1172,7 +1357,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         if (!currentCircleId) {
-            feedList.innerHTML = `<p class="text-gray-500 text-sm">Select a circle to see the feed.</p>`;
+            feedList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">Select a circle to see the feed.</p>`;
             return;
         }
 
@@ -1203,13 +1388,13 @@ document.addEventListener("DOMContentLoaded", () => {
         feedList.innerHTML = "";
         
         if (feedItems.length === 0) {
-            feedList.innerHTML = `<p class="text-gray-500 text-sm">The feed is empty. Be the first to post an update!</p>`;
+            feedList.innerHTML = `<p class="text-gray-500 dark:text-rp-muted text-sm">The feed is empty. Be the first to post an update!</p>`;
             return;
         }
         
         feedItems.forEach(item => {
             const postElement = document.createElement("div");
-            postElement.className = "bg-white p-4 rounded-xl border border-gray-200 shadow-sm";
+            postElement.className = "bg-white p-4 rounded-xl border border-gray-200 shadow-sm dark:bg-rp-base dark:border-rp-overlay";
             
             const time = item.timestamp ? new Date(item.timestamp.toMillis()).toLocaleString() : "just now";
             const name = item.userName || item.userEmail.split('@')[0];
@@ -1218,18 +1403,18 @@ document.addEventListener("DOMContentLoaded", () => {
             if (item.imageURL) {
                 mediaHTML = `
                     <div class="mt-3">
-                        <img src="${item.imageURL}" alt="User screenshot" class="max-h-60 w-auto rounded-lg border-2 border-gray-200 cursor-pointer transition duration-300 hover:shadow-md" data-img-src="${item.imageURL}">
+                        <img src="${item.imageURL}" alt="User screenshot" class="max-h-60 w-auto rounded-lg border-2 border-gray-200 cursor-pointer transition duration-300 hover:shadow-md dark:border-rp-overlay" data-img-src="${item.imageURL}">
                     </div>
                 `;
             }
 
             postElement.innerHTML = `
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-semibold text-gray-900">${name}</span>
-                    <span class="text-xs text-gray-500">${time}</span>
+                    <span class="text-sm font-semibold text-gray-900 dark:text-rp-text">${name}</span>
+                    <span class="text-xs text-gray-500 dark:text-rp-muted">${time}</span>
                 </div>
-                <p class="text-gray-700 mb-2"><strong class="font-medium text-cyan-600">${item.updateText}</strong></sP>
-                <p class="text-gray-800 text-sm bg-gray-100 p-3 rounded-md">${item.notes}</p>
+                <p class="text-gray-700 dark:text-rp-subtle mb-2"><strong class="font-medium text-cyan-600 dark:text-rp-foam">${item.updateText}</strong></sP>
+                <p class="text-gray-800 text-sm bg-gray-100 p-3 rounded-md dark:bg-rp-base dark:text-rp-subtle">${item.notes}</p>
                 ${mediaHTML}
             `;
             feedList.appendChild(postElement);
@@ -1263,7 +1448,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (error.code === 'auth/unauthorized-domain') {
                 const currentDomain = location.hostname;
                 showMessageModal(
-                    `Firebase is blocking this app's domain. You must add this domain to your Firebase project's "Authorized domains" list.<br><br><strong class="text-gray-800">Domain to add:</strong><br><code class="bg-gray-200 text-cyan-700 px-2 py-1 rounded-md block mt-2">${currentDomain}</code><br><br><strong>How to fix:</strong><B R>1. Go to your Firebase Console<br>2. Go to Authentication > Settings<br>3. Click 'Authorized domains'<br>4. Click 'Add domain' and paste the code above.`, 
+                    `Firebase is blocking this app's domain. You must add this domain to your Firebase project's "Authorized domains" list.<br><br><strong class="text-gray-800 dark:text-rp-text">Domain to add:</strong><br><code class="bg-gray-200 text-cyan-700 px-2 py-1 rounded-md block mt-2 dark:bg-rp-overlay dark:text-rp-foam">${currentDomain}</code><br><br><strong>How to fix:</strong><B R>1. Go to your Firebase Console<br>2. Go to Authentication > Settings<br>3. Click 'Authorized domains'<br>4. Click 'Add domain' and paste the code above.`, 
                     "Sign-In Failed (Action Required)"
                 );
             } else {
@@ -1295,9 +1480,32 @@ document.addEventListener("DOMContentLoaded", () => {
     longBreakButton.addEventListener("click", () => setTimer('long'));
     startTimerButton.addEventListener("click", startStopTimer);
     resetTimerButton.addEventListener("click", resetTimer);
+    timerSettingsButton.addEventListener("click", showTimerSettingsModal); // NEW
 
-    // NEW: Attach YouTube Player Listener
+    // Attach YouTube Player Listener
     ytLoadButton.addEventListener("click", handleLoadYoutubeVideo);
+
+    // Attach Theme Toggle Listener
+    themeToggleButton.addEventListener('click', toggleTheme);
+
+    // --- INIT ---
+    // Set initial theme from localStorage
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+    
+    // NEW: Load saved timer settings from localStorage
+    const savedTimerSettings = localStorage.getItem('timerSettings');
+    if (savedTimerSettings) {
+        timerSettings = JSON.parse(savedTimerSettings);
+    }
+    // Set initial timer state
+    setTimer('pomodoro');
+    
+    // NEW: Set initial cat quote
+    if (catQuoteDisplay) {
+        const quote = catQuotes[Math.floor(Math.random() * catQuotes.length)];
+        catQuoteDisplay.textContent = `"${quote}"`;
+    }
 
     // Final check
     if (!auth) {
