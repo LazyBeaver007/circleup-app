@@ -166,7 +166,264 @@ html.theme-cyberpunk {
     --heatmap-level-4: #f7ff00; /* yellow */
 }
 
+html.theme-dragon-age {
+    --bg-base: #1a1a1f; /* Deep charcoal with blue undertone */
+    --bg-card: #0d0d12; /* Near-black with purple tones */
+    --bg-card-secondary: #151521; /* Dark indigo */
+    --bg-hover: #2a2a35;
+    --border-color: #424d34; /* Inquisition green-gold */
 
+    --text-primary: #e8e8e0; /* Parchment-like off-white */
+    --text-secondary: #b8b8c0; /* Silver-grey */
+    --text-muted: #6e6e7a;
+    --text-inverted: #0a0a0f;
+
+    --accent-primary: #967c47; /* Inquisition gold */
+    --accent-primary-hover: #b59a5a;
+    --accent-primary-text: #0a0a0f;
+    
+    --accent-secondary: #2d4a2f; /* Deep emerald green */
+    --accent-secondary-hover: #3a5a3c;
+    --accent-secondary-text: #e8e8e0;
+    
+    --status-safe-bg: rgba(45, 74, 47, 0.2); /* Emerald tint */
+    --status-safe-text: #7da87f;
+    --status-missed-bg: rgba(150, 124, 71, 0.2); /* Gold tint */
+    --status-missed-text: #d4b87a;
+
+    --reaction-bg: #252530;
+    --reaction-border: #424d34;
+    --reaction-text: #b8b8c0;
+    --reaction-active-bg: #967c47; /* Inquisition gold */
+    --reaction-active-border: #b59a5a;
+    --reaction-active-text: #0a0a0f;
+
+    /* Heatmap Colors (Inquisition inspired) */
+    --heatmap-level-0: #252530;
+    --heatmap-level-1: #424d34; /* Olive green */
+    --heatmap-level-2: #5a6d45; /* Medium green */
+    --heatmap-level-3: #967c47; /* Gold */
+    --heatmap-level-4: #b59a5a; /* Bright gold */
+}
+
+html.theme-mass-effect {
+    --bg-base: #0a0a14; /* Deep space black with blue undertone */
+    --bg-card: #050510; /* Near-black */
+    --bg-card-secondary: #101826; /* Dark space blue */
+    --bg-hover: #1a2438;
+    --border-color: #2a4a6a; /* Normandy blue */
+
+    --text-primary: #e0f0ff; /* Cool blue-white */
+    --text-secondary: #a0c0e0; /* Light steel blue */
+    --text-muted: #5a7a9a;
+    --text-inverted: #0a0a14;
+
+    --accent-primary: #00c8ff; /* Paragon blue */
+    --accent-primary-hover: #40e0ff;
+    --accent-primary-text: #0a0a14;
+    
+    --accent-secondary: #ff2a6a; /* Renegade red */
+    --accent-secondary-hover: #ff5a8a;
+    --accent-secondary-text: #ffffff;
+    
+    --status-safe-bg: rgba(0, 200, 255, 0.15); /* Paragon blue tint */
+    --status-safe-text: #00c8ff;
+    --status-missed-bg: rgba(255, 42, 106, 0.15); /* Renegade red tint */
+    --status-missed-text: #ff2a6a;
+
+    --reaction-bg: #152035;
+    --reaction-border: #2a4a6a;
+    --reaction-text: #a0c0e0;
+    --reaction-active-bg: #00c8ff; /* Paragon blue */
+    --reaction-active-border: #40e0ff;
+    --reaction-active-text: #0a0a14;
+
+    /* Heatmap Colors (Mass Effect inspired) */
+    --heatmap-level-0: #152035;
+    --heatmap-level-1: #2a4a6a; /* Steel blue */
+    --heatmap-level-2: #456a9a; /* Medium blue */
+    --heatmap-level-3: #00c8ff; /* Paragon blue */
+    --heatmap-level-4: #ff2a6a; /* Renegade red */
+
+    /* Additional Mass Effect UI Elements */
+    --ui-glow: 0 0 10px rgba(0, 200, 255, 0.5);
+    --ui-glow-strong: 0 0 20px rgba(0, 200, 255, 0.7);
+    --scan-lines: linear-gradient(
+        to bottom,
+        transparent 50%,
+        rgba(0, 200, 255, 0.02) 50%
+    );
+}
+
+html.theme-witcher {
+    --bg-base: #1a1815; /* Deep earthy charcoal */
+    --bg-card: #0f0e0c; /* Near-black with brown undertone */
+    --bg-card-secondary: #1c1a16; /* Dark taupe */
+    --bg-hover: #2a2620;
+    --border-color: #5d4c3a; /* Witcher steel grey-brown */
+
+    --text-primary: #f0e6d8; /* Parchment/aged paper */
+    --text-secondary: #c8b8a0; /* Weathered silver */
+    --text-muted: #8a7a6a;
+    --text-inverted: #0f0e0c;
+
+    --accent-primary: #a52a2a; /* Witcher school crimson */
+    --accent-primary-hover: #c53a3a;
+    --accent-primary-text: #f0e6d8;
+    
+    --accent-secondary: #4a6440; /* Forest hunter green */
+    --accent-secondary-hover: #5a7450;
+    --accent-secondary-text: #f0e6d8;
+    
+    --status-safe-bg: rgba(74, 100, 64, 0.2); /* Wolven green tint */
+    --status-safe-text: #8ba87f;
+    --status-missed-bg: rgba(165, 42, 42, 0.2); /* Crimson tint */
+    --status-missed-text: #d47a7a;
+
+    --reaction-bg: #25221e;
+    --reaction-border: #5d4c3a;
+    --reaction-text: #c8b8a0;
+    --reaction-active-bg: #a52a2a; /* Witcher crimson */
+    --reaction-active-border: #c53a3a;
+    --reaction-active-text: #f0e6d8;
+
+    /* Heatmap Colors (Witcher inspired) */
+    --heatmap-level-0: #25221e;
+    --heatmap-level-1: #5d4c3a; /* Steel/iron */
+    --heatmap-level-2: #7a644a; /* Bronze */
+    --heatmap-level-3: #a52a2a; /* Witcher crimson */
+    --heatmap-level-4: #d4a52a; /* Gold/igni */
+
+    /* Witcher-specific accents */
+    --sign-quen: #d4a52a; /* Golden yellow */
+    --sign-igni: #ff6b35; /* Fiery orange */
+    --sign-axii: #4a86e8; /* Mystic blue */
+    --sign-yrden: #8e44ad; /* Purple */
+    --sign-aard: #95a5a6; /* Silver grey */
+
+    --school-wolf: #a52a2a; /* Wolf school crimson */
+    --school-cat: #d4a52a; /* Cat school gold */
+    --school-bear: #4a6440; /* Bear school green */
+    --school-griffin: #2a4a6a; /* Griffin school blue */
+    --school-viper: #4a6440; /* Viper school green */
+}
+
+html.theme-hollow-knight {
+    --bg-base: #0a0a0c; /* Deepest Hallownest black */
+    --bg-card: #050508; /* Void black */
+    --bg-card-secondary: #15141a; /* Abyss dark */
+    --bg-hover: #1a1820;
+    --border-color: #3a3542; /* Ancient basin stone */
+
+    --text-primary: #f0f0f0; /* Pale being white */
+    --text-secondary: #b8b0c0; /* Weathered memorial */
+    --text-muted: #6a6575;
+    --text-inverted: #0a0a0c;
+
+    --accent-primary: #ffffff; /* Pale King white */
+    --accent-primary-hover: #e0e0ff;
+    --accent-primary-text: #0a0a0c;
+    
+    --accent-secondary: #ff7b00; /* Infection orange */
+    --accent-secondary-hover: #ff9b30;
+    --accent-secondary-text: #0a0a0c;
+    
+    --status-safe-bg: rgba(255, 255, 255, 0.1); /* Soul energy */
+    --status-safe-text: #e0e0ff;
+    --status-missed-bg: rgba(255, 123, 0, 0.15); /* Infection glow */
+    --status-missed-text: #ffb070;
+
+    --reaction-bg: #1c1a22;
+    --reaction-border: #3a3542;
+    --reaction-text: #b8b0c0;
+    --reaction-active-bg: #ffffff; /* Pure vessel white */
+    --reaction-active-border: #e0e0ff;
+    --reaction-active-text: #0a0a0c;
+
+    /* Heatmap Colors (Hollow Knight palette) */
+    --heatmap-level-0: #1c1a22;
+    --heatmap-level-1: #3a3542; /* Deepnest grey */
+    --heatmap-level-2: #5a5575; /* City of Tears blue */
+    --heatmap-level-3: #ff7b00; /* Infection orange */
+    --heatmap-level-4: #ffffff; /* Radiance white */
+
+    /* Charm Notches & Special Colors */
+    --charm-notch: #4a456a;
+    --charm-equipped: #ffd700;
+    --soul-energy: #a0d0ff;
+    --void-heart: #202030;
+    --dream-nail: #ffeb3b;
+
+    /* Area-inspired accents */
+    --greenpath: #4a7a45;
+    --fungal-wastes: #8a4fa8;
+    --city-tears: #4a75a0;
+    --crystal-peak: #c0a0ff;
+    --royal-waterways: #8a7a55;
+}
+
+html.theme-skyrim {
+    --bg-base: #1a1c1a; /* Skyrim night sky */
+    --bg-card: #0f100f; /* Blackreach deep */
+    --bg-card-secondary: #1e201e; /* Pine forest dark */
+    --bg-hover: #2a2c2a;
+    --border-color: #5d4c3a; /* Ancient nordic stone */
+
+    --text-primary: #f0e6d8; /* Parchment/elder scroll */
+    --text-secondary: #b8b0a0; /* Weathered stone */
+    --text-muted: #7a756a;
+    --text-inverted: #0f100f;
+
+    --accent-primary: #8b4513; /* Nordic bronze */
+    --accent-primary-hover: #a56533;
+    --accent-primary-text: #f0e6d8;
+    
+    --accent-secondary: #2f4f4f; /* Dwarven metal */
+    --accent-secondary-hover: #3f5f5f;
+    --accent-secondary-text: #f0e6d8;
+    
+    --status-safe-bg: rgba(139, 69, 19, 0.15); /* Bronze tint */
+    --status-safe-text: #d4a57a;
+    --status-missed-bg: rgba(47, 79, 79, 0.15); /* Dwarven tint */
+    --status-missed-text: #7a9a9a;
+
+    --reaction-bg: #252825;
+    --reaction-border: #5d4c3a;
+    --reaction-text: #b8b0a0;
+    --reaction-active-bg: #8b4513; /* Nordic bronze */
+    --reaction-active-border: #a56533;
+    --reaction-active-text: #f0e6d8;
+
+    /* Heatmap Colors (Skyrim inspired) */
+    --heatmap-level-0: #252825;
+    --heatmap-level-1: #5d4c3a; /* Stone grey */
+    --heatmap-level-2: #7a644a; /* Wood brown */
+    --heatmap-level-3: #8b4513; /* Nordic bronze */
+    --heatmap-level-4: #daa520; /* Dragon gold */
+
+    /* Shout & Magic Colors */
+    --shout-fus: #8b4513; /* Unrelenting Force - brown */
+    --shout-yol: #ff4500; /* Fire Breath - orange */
+    --shout-liz: #00ffff; /* Frost Breath - cyan */
+    --magic-destruction: #ff6b35; /* Fire magic */
+    --magic-restoration: #98fb98; /* Healing green */
+    --magic-conjuration: #8a2be2; /* Purple summoning */
+    --magic-illusion: #ffeb3b; /* Yellow illusion */
+
+    /* Faction Colors */
+    --faction-imperial: #c0c0c0; /* Imperial silver */
+    --faction-stormcloak: #0047ab; /* Stormcloak blue */
+    --faction-companions: #daa520; /* Companions gold */
+    --faction-college: #4b0082; /* College purple */
+    --faction-thieves: #8b4513; /* Thieves guild brown */
+    --faction-darkbrotherhood: #000000; /* Dark brotherhood black */
+
+    /* Dragon Soul & Special */
+    --dragon-soul: #daa520;
+    --dragon-scale: #2f4f4f;
+    --ebony: #1a1a1a;
+    --malachite: #00ff00;
+}
 /* --------------------------------------------------- */
 /* GLOBAL STYLES (Using Variables)
 /* --------------------------------------------------- */
