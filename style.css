@@ -424,6 +424,75 @@ html.theme-skyrim {
     --ebony: #1a1a1a;
     --malachite: #00ff00;
 }
+
+html.theme-baldurs-gate-3 {
+    --bg-base: #1a1825; /* Faerûn twilight */
+    --bg-card: #0f0e18; /* Deep shadow */
+    --bg-card-secondary: #25223a; /* Mystic purple */
+    --bg-hover: #2d2a45;
+    --border-color: #4a456a; /* Enchanted silver */
+
+    --text-primary: #f0f0ff; /* Divine white */
+    --text-secondary: #c8c8e0; /* Ethereal silver */
+    --text-muted: #8a88aa;
+    --text-inverted: #0f0e18;
+
+    --accent-primary: #daa520; /* Divine gold */
+    --accent-primary-hover: #e8b535;
+    --accent-primary-text: #0f0e18;
+    
+    --accent-secondary: #8a2be2; /* Magic purple */
+    --accent-secondary-hover: #9a3bf2;
+    --accent-secondary-text: #f0f0ff;
+    
+    --status-safe-bg: rgba(218, 165, 32, 0.15); /* Divine gold tint */
+    --status-safe-text: #e8c575;
+    --status-missed-bg: rgba(138, 43, 226, 0.15); /* Magic purple tint */
+    --status-missed-text: #b88af0;
+
+    --reaction-bg: #2a2740;
+    --reaction-border: #4a456a;
+    --reaction-text: #c8c8e0;
+    --reaction-active-bg: #daa520; /* Divine gold */
+    --reaction-active-border: #e8b535;
+    --reaction-active-text: #0f0e18;
+
+    /* Heatmap Colors (BG3 inspired) */
+    --heatmap-level-0: #2a2740;
+    --heatmap-level-1: #4a456a; /* Mystic purple */
+    --heatmap-level-2: #6a65aa; /* Ceruleum blue */
+    --heatmap-level-3: #daa520; /* Divine gold */
+    --heatmap-level-4: #ff6b35; /* Illithid orange */
+
+    /* D&D Alignment & Magic Colors */
+    --magic-arcane: #8a2be2; /* Purple */
+    --magic-divine: #daa520; /* Gold */
+    --magic-nature: #2e8b57; /* Druid green */
+    --magic-elemental: #ff6b35; /* Fire/Evocation */
+
+    /* Companion Colors */
+    --companion-shadowheart: #8a2be2; /* Shar purple */
+    --companion-astarion: #c0c0c0; /* Vampire silver */
+    --companion-gale: #4b0082; /* Mystra blue */
+    --companion-laezel: #2e8b57; /* Gith green */
+    --companion-karlach: #ff4500; /* Infernal orange */
+    --companion-wyll: #daa520; /* Blade gold */
+
+    /* Illithid & Special */
+    --illithid-purple: #6a0dad;
+    --illithid-pink: #ff1493;
+    --tadpole-orange: #ff6b35;
+    --selune-silver: #e0e0ff;
+    --shar-shadow: #4a004a;
+
+    /* Dice & Game Elements */
+    --dice-gold: #daa520;
+    --dice-silver: #c0c0c0;
+    --dice-bronze: #cd7f32;
+    --inspiration-blue: #00bfff;
+    --advantage-green: #32cd32;
+    --disadvantage-red: #dc143c;
+}
 /* --------------------------------------------------- */
 /* GLOBAL STYLES (Using Variables)
 /* --------------------------------------------------- */
