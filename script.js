@@ -19,7 +19,8 @@ import {
     onSnapshot,
     deleteDoc,
     updateDoc,
-    serverTimestamp,
+    serverTimestamp, // Use this for consistency
+    Timestamp,      // Import Timestamp for date calcs
     query,
     getDoc,
     setDoc,
@@ -30,7 +31,7 @@ import {
     orderBy,
     limit,
     runTransaction,
-    writeBatch // NEW: Import writeBatch
+    writeBatch
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // ---------------------------------------------------
@@ -68,6 +69,7 @@ let feedUnsubscribe = null;
 let userGoals = [];
 let userCircles = []; 
 let currentCircleId = null; 
+let countdownInterval = null; // NEW: For the deadline timer
 
 // Timer settings object with defaults
 let timerSettings = {
@@ -116,11 +118,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const circleMembersList = document.getElementById("circle-members-list");
     const accountabilityStatusList = document.getElementById("accountability-status-list"); 
     
-    // --- NEW: "The Locker" ---
+    // --- "The Locker" ---
     const viewArchiveButton = document.getElementById("view-archive-button");
 
-    // --- NEW: "Carcosa" ---
+    // --- "Carcosa" ---
     const focusModeButton = document.getElementById("focus-mode-button");
+
+    // --- "The Thread" (Stats) ---
+    const viewStatsButton = document.getElementById("view-stats-button");
+
+    // --- NEW: Deadline Countdown DOM ---
+    const editDeadlineButton = document.getElementById("edit-deadline-button");
+    const countdownPlaceholder = document.getElementById("countdown-placeholder");
+    const countdownTimerDiv = document.getElementById("countdown-timer");
+    const countdownDays = document.getElementById("countdown-days");
+    const countdownHours = document.getElementById("countdown-hours");
+    const countdownMinutes = document.getElementById("countdown-minutes");
+    const countdownSeconds = document.getElementById("countdown-seconds");
 
     // --- Pomodoro DOM References ---
     const timerDisplay = document.getElementById("timer-display");
@@ -137,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const ytLinkInput = document.getElementById("yt-link-input");
     const ytLoadButton = document.getElementById("yt-load-button");
 
-    // --- NEW: Theme Selector ---
+    // --- Theme Selector ---
     const themeSelector = document.getElementById("theme-selector");
 
 
@@ -147,12 +161,12 @@ document.addEventListener("DOMContentLoaded", () => {
     let timerSeconds = timerSettings.pomodoro; // Use default
     let isRunning = false;
 
-    // --- NEW: Theme Functions ---
+    // --- Theme Functions ---
     const setTheme = (theme_class) => {
         // theme_class will be "theme-light", "theme-rose", etc.
         localStorage.setItem('theme', theme_class);
         document.documentElement.className = theme_class; // Set class on <html>
-        if (themeSelector) themeSelector.value = theme_class; // Sync dropdown if present
+        themeSelector.value = theme_class; // Sync dropdown
     };
 
     // --- Pomodoro Functions ---
@@ -382,7 +396,10 @@ document.addEventListener("DOMContentLoaded", () => {
             // Clean up listeners
             if (goalsUnsubscribe) goalsUnsubscribe();
             if (feedUnsubscribe) feedUnsubscribe();
+            if (countdownInterval) clearInterval(countdownInterval); // Stop countdown on logout
             
+            clearCountdown(); // NEW: Clear countdown display on logout
+
             goalsList.innerHTML = "";
             feedList.innerHTML = "";
             circlesList.innerHTML = "";
@@ -400,11 +417,158 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // --- NEW: Deadline Countdown Functions ---
+    function startCountdown(deadlineDate) {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+
+        countdownPlaceholder.classList.add("hidden");
+        countdownTimerDiv.classList.remove("hidden");
+
+        countdownInterval = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = deadlineDate.getTime() - now;
+
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                countdownTimerDiv.innerHTML = `<div class="text-2xl font-bold text-status-missed-text">DEADLINE REACHED</div>`;
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            countdownDays.textContent = days < 10 ? '0' + days : days;
+            countdownHours.textContent = hours < 10 ? '0' + hours : hours;
+            countdownMinutes.textContent = minutes < 10 ? '0' + minutes : minutes;
+            countdownSeconds.textContent = seconds < 10 ? '0' + seconds : seconds;
+
+        }, 1000);
+    }
+
+    // ***** THIS IS THE FIX *****
+    function clearCountdown() {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+        countdownPlaceholder.classList.remove("hidden");
+        countdownTimerDiv.classList.add("hidden");
+        
+        // Reset text content OF EXISTING elements instead of destroying them
+        countdownDays.textContent = "0";
+        countdownHours.textContent = "0";
+        countdownMinutes.textContent = "0";
+        countdownSeconds.textContent = "0";
+    }
+
+    function showDeadlineModal(currentDeadline) {
+        // Format the date for the input field
+        const now = new Date();
+        let yyyy = now.getFullYear();
+        let mm = String(now.getMonth() + 1).padStart(2, '0');
+        let dd = String(now.getDate()).padStart(2, '0');
+        let hh = String(now.getHours()).padStart(2, '0');
+        let ii = String(now.getMinutes()).padStart(2, '0');
+
+        if (currentDeadline) {
+            yyyy = currentDeadline.getFullYear();
+            mm = String(currentDeadline.getMonth() + 1).padStart(2, '0');
+            dd = String(currentDeadline.getDate()).padStart(2, '0');
+            hh = String(currentDeadline.getHours()).padStart(2, '0');
+            ii = String(currentDeadline.getMinutes()).padStart(2, '0');
+        }
+        
+        const modalHTML = `
+            <form id="deadline-form">
+                <h3 class="text-xl font-semibold mb-6 text-text-primary">Set Your Deadline</h3>
+                <div class="mb-4">
+                    <label for="deadline-date" class="block text-sm font-medium text-text-secondary mb-2">Date</label>
+                    <input type="date" id="deadline-date" name="date" class="modal-input" required value="${yyyy}-${mm}-${dd}">
+                </div>
+                <div class="mb-4">
+                    <label for="deadline-time" class="block text-sm font-medium text-text-secondary mb-2">Time</label>
+                    <input type="time" id="deadline-time" name="time" class="modal-input" required value="${hh}:${ii}">
+                </div>
+                <div class="flex gap-4">
+                    <button type="button" id="modal-clear-button" class="animated-button w-1/3 bg-status-missed-bg text-status-missed-text font-semibold py-2 px-4 rounded-lg hover:bg-bg-hover transition duration-300">
+                        Clear
+                    </button>
+                    <button type="button" id="modal-cancel-button" class="modal-button-secondary">
+                        Cancel
+                    </button>
+                    <button type="submit" id="modal-submit-button" class="modal-button-primary">
+                        Save
+                    </button>
+                </div>
+            </form>
+        `;
+        showModal(modalHTML);
+        document.getElementById("deadline-form").addEventListener("submit", handleDeadlineSubmit);
+        document.getElementById("modal-cancel-button").addEventListener("click", closeModal);
+        document.getElementById("modal-clear-button").addEventListener("click", handleClearDeadline);
+    }
+    
+    async function handleDeadlineSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const dateStr = form.date.value;
+        const timeStr = form.time.value;
+
+        if (!dateStr || !timeStr || !currentUserId) return;
+
+        const newDeadline = new Date(`${dateStr}T${timeStr}`);
+        
+        if (newDeadline < new Date()) {
+            showMessageModal("Deadline must be in the future.", "Invalid Date");
+            return;
+        }
+
+        const submitButton = document.getElementById("modal-submit-button");
+        submitButton.disabled = true;
+        submitButton.textContent = "Saving...";
+
+        try {
+            const userRef = doc(db, `users/${currentUserId}`);
+            const deadlineTimestamp = Timestamp.fromDate(newDeadline);
+            await updateDoc(userRef, {
+                deadline: deadlineTimestamp
+            });
+            
+            startCountdown(newDeadline);
+            closeModal();
+        } catch (error) {
+            console.error("Error saving deadline:", error);
+            showMessageModal("Could not save deadline.", "Error");
+            submitButton.disabled = false;
+            submitButton.textContent = "Save";
+        }
+    }
+    
+    async function handleClearDeadline() {
+        if (!currentUserId) return;
+        
+        try {
+            const userRef = doc(db, `users/${currentUserId}`);
+            await updateDoc(userRef, {
+                deadline: null
+            });
+            clearCountdown();
+            closeModal();
+        } catch (error) {
+            console.error("Error clearing deadline:", error);
+            showMessageModal("Could not clear deadline.", "Error");
+        }
+    }
+
     // --- User Profile & Circle Management ---
     async function loadUserProfile(user) {
         const userRef = doc(db, `users/${user.uid}`);
         const userSnap = await getDoc(userRef);
         let lastVideoId = 'jfKfPfyJRdk'; // Default lofi video
+        let deadline = null; // NEW
 
         if (!userSnap.exists()) {
             // First time login
@@ -425,7 +589,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     displayName: userDisplayName,
                     createdAt: serverTimestamp(),
                     circles: [personalCircleData],
-                    lastYtVideoId: lastVideoId 
+                    lastYtVideoId: lastVideoId,
+                    deadline: null // NEW
                 });
                 
                 userCircles = [personalCircleData];
@@ -441,6 +606,7 @@ document.addEventListener("DOMContentLoaded", () => {
             userCircles = userData.circles || [];
             userDisplayName = userData.displayName || user.email.split('@')[0];
             lastVideoId = userData.lastYtVideoId || lastVideoId; 
+            deadline = userData.deadline || null; // NEW
             
             if (userCircles.length > 0) {
                 currentCircleId = userCircles[0].id; 
@@ -453,6 +619,13 @@ document.addEventListener("DOMContentLoaded", () => {
         userDisplayNameElement.textContent = userDisplayName;
         currentCircleIdDisplayElement.textContent = currentCircleId || "No circle selected";
         renderCircleList();
+
+        // NEW: Start deadline countdown if it exists
+        if (deadline) {
+            startCountdown(deadline.toDate());
+        } else {
+            clearCountdown();
+        }
         
         if (currentCircleId) {
             loadCircleFeed();
@@ -994,7 +1167,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const goalElement = document.createElement("div");
             goalElement.className = "bg-bg-card-secondary p-4 rounded-xl border border-border-color";
             
-            // NEW: Show "Archive" or "Delete" button
+            // "The Locker": Show "Archive" or "Delete" button
             const actionButtonHTML = isComplete
                 ? `<button data-id="${goal.id}" class="archive-goal-button text-xs text-green-600 hover:text-green-700 font-medium mt-2">Archive</button>`
                 : `<button data-id="${goal.id}" class="delete-goal-button text-xs text-red-500 hover:text-red-700 font-medium mt-2">Delete</button>`;
@@ -1015,7 +1188,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll('.delete-goal-button').forEach(button => {
             button.addEventListener('click', () => handleDeleteGoal(button.dataset.id));
         });
-        // NEW: Add listener for archive buttons
+        // "The Locker": Add listener for archive buttons
         document.querySelectorAll('.archive-goal-button').forEach(button => {
             button.addEventListener('click', () => handleArchiveGoal(button.dataset.id));
         });
@@ -1033,7 +1206,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // NEW: "The Locker" - Archive Goal Function
+    // "The Locker" - Archive Goal Function
     async function handleArchiveGoal(goalId) {
         if (!currentUserId || !goalId) return;
 
@@ -1061,7 +1234,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // NEW: "The Locker" - Show Archive Modal Function
+    // "The Locker" - Show Archive Modal Function
     async function showArchivedGoalsModal() {
         const modalHTML = `
             <h3 class="text-xl font-semibold mb-4 text-text-primary">Archived Goals (The Locker)</h3>
@@ -1078,7 +1251,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const archivedList = document.getElementById("archived-goals-list");
         try {
             const goalsRef = collection(db, `users/${currentUserId}/archived_goals`);
-            const goalsSnap = await getDocs(goalsRef);
+            const goalsSnap = await getDocs(query(goalsRef, orderBy("archivedAt", "desc")));
 
             if (goalsSnap.empty) {
                 archivedList.innerHTML = `<p class="text-text-muted">You have no archived goals.</p>`;
@@ -1163,7 +1336,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 title: title,
                 current: current,
                 total: total,
-                createdAt: new Date()
+                createdAt: serverTimestamp() // Use serverTimestamp
             });
             closeModal();
         } catch (error) {
@@ -1209,6 +1382,97 @@ document.addEventListener("DOMContentLoaded", () => {
             previewContainer.classList.add("hidden");
         }
     }
+
+    // --- "The Thread" (Stats) Functions ---
+    // Helper to get YYYY-MM-DD format
+    function getDateString(date) {
+        return date.toISOString().split('T')[0];
+    }
+    
+    async function showStatsModal() {
+        const modalHTML = `
+            <h3 class="text-xl font-semibold mb-4 text-text-primary">Contribution Heatmap</h3>
+            <p class="text-sm text-text-secondary mb-4">Your check-ins from the past year. (This will fill up as you post)</p>
+            <div id="heatmap-loading" class="text-text-muted">Loading heatmap...</div>
+            <div id="heatmap-container" class="heatmap-container hidden">
+                <div id="heatmap-grid" class="heatmap-grid"></div>
+                <div class="heatmap-legend">
+                    <span class="mr-2">Less</span>
+                    <div class="heatmap-legend-box" style="background-color: var(--heatmap-level-0)"></div>
+                    <div class="heatmap-legend-box" style="background-color: var(--heatmap-level-1)"></div>
+                    <div class="heatmap-legend-box" style="background-color: var(--heatmap-level-2)"></div>
+                    <div class="heatmap-legend-box" style="background-color: var(--heatmap-level-3)"></div>
+                    <div class="heatmap-legend-box" style="background-color: var(--heatmap-level-4)"></div>
+                    <span class="ml-2">More</span>
+                </div>
+            </div>
+            <button id="modal-close-button" class="animated-button mt-6 w-full bg-accent-primary text-accent-primary-text font-semibold py-2 px-4 rounded-lg hover:bg-accent-primary-hover transition duration-300">
+                Close
+            </button>
+        `;
+        showModal(modalHTML);
+        document.getElementById("modal-close-button").addEventListener("click", closeModal);
+
+        try {
+            // 1. Fetch all check-in receipts
+            const checkInsRef = collection(db, `users/${currentUserId}/check_ins`);
+            const checkInsSnap = await getDocs(checkInsRef);
+            
+            const checkInData = new Map();
+            checkInsSnap.forEach(doc => {
+                // doc.id is the dateString "YYYY-MM-DD"
+                checkInData.set(doc.id, doc.data().count);
+            });
+            
+            // 2. Render the heatmap
+            renderHeatmap(checkInData);
+            document.getElementById("heatmap-loading").classList.add("hidden");
+            document.getElementById("heatmap-container").classList.remove("hidden");
+
+        } catch (error) {
+            console.error("Error loading heatmap data:", error);
+            document.getElementById("heatmap-loading").textContent = "Error loading heatmap.";
+        }
+    }
+
+    function renderHeatmap(checkInData) {
+        const grid = document.getElementById("heatmap-grid");
+        grid.innerHTML = ""; // Clear
+        
+        const today = new Date();
+        const daysToShow = 371; // 53 weeks * 7 days
+        let date = new Date();
+        date.setDate(today.getDate() - (daysToShow - 1));
+
+        // Add blank days at the start to align the first day
+        const startDayOfWeek = date.getDay(); // 0 (Sun) - 6 (Sat)
+        for (let i = 0; i < startDayOfWeek; i++) {
+            const blankDay = document.createElement("div");
+            blankDay.className = "heatmap-day";
+            blankDay.style.opacity = 0; // Make it invisible
+            grid.appendChild(blankDay);
+        }
+        
+        // Loop through and render each day
+        for (let i = 0; i < daysToShow; i++) {
+            const dateString = getDateString(date);
+            const count = checkInData.get(dateString) || 0;
+            
+            let level = 0;
+            if (count > 0) level = 1;
+            if (count > 2) level = 2;
+            if (count > 4) level = 3;
+            if (count > 6) level = 4;
+            
+            const dayElement = document.createElement("div");
+            dayElement.className = `heatmap-day ${count > 0 ? `level-${level}` : ''}`;
+            dayElement.title = `${count} check-in${count === 1 ? '' : 's'} on ${dateString}`;
+            
+            grid.appendChild(dayElement);
+            date.setDate(date.getDate() + 1);
+        }
+    }
+
 
     // --- Check-In Functions ---
     function showCheckInModal() {
@@ -1336,13 +1600,35 @@ document.addEventListener("DOMContentLoaded", () => {
                 goalTitle: selectedGoal.title,
                 updateText: `updated ${selectedGoal.title} to ${newValue}/${selectedGoal.total}`,
                 notes: notes,
-                timestamp: serverTimestamp(),
+                timestamp: serverTimestamp(), 
                 audioURL: null,
                 imageURL: imageURL,
                 reactions: {} 
             });
 
             await batch.commit();
+
+            // NEW: "The Thread" - Write a private receipt for the heatmap
+            const dateString = getDateString(new Date());
+            const checkInRef = doc(db, `users/${currentUserId}/check_ins`, dateString);
+            
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const checkInSnap = await transaction.get(checkInRef);
+                    let newCount = 1;
+                    if (checkInSnap.exists()) {
+                        newCount = checkInSnap.data().count + 1;
+                    }
+                    // Use set with merge to create or update
+                    transaction.set(checkInRef, { 
+                        count: newCount, 
+                        lastCheckIn: serverTimestamp() 
+                    }, { merge: true });
+                });
+            } catch (receiptError) {
+                console.error("Error writing check-in receipt:", receiptError);
+                // Don't fail the whole operation, just log it.
+            }
             
             closeModal();
             showMessageModal("Your update has been posted to the circle feed!", "Success");
@@ -1416,7 +1702,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 `;
             }
 
-            // NEW: Build reactions HTML
+            // Build reactions HTML
             let reactionsHTML = '<div class="flex gap-2 mt-4">';
             const reactions = item.reactions || {};
             
@@ -1441,7 +1727,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <p class="text-text-secondary mb-2"><strong class="font-medium text-accent-primary">${item.updateText}</strong></sP>
                 <p class="text-text-secondary text-sm bg-bg-base p-3 rounded-md">${item.notes}</p>
                 ${mediaHTML}
-                ${reactionsHTML} <!-- NEW: Add reactions bar -->
+                ${reactionsHTML} <!-- Add reactions bar -->
             `;
             feedList.appendChild(postElement);
         });
@@ -1455,7 +1741,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-        // NEW: Add click listeners for reaction buttons
+        // Add click listeners for reaction buttons
         feedList.querySelectorAll('.reaction-button').forEach(button => {
             button.addEventListener('click', () => {
                 const postId = button.dataset.postId;
@@ -1529,7 +1815,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (error.code === 'auth/unauthorized-domain') {
                 const currentDomain = location.hostname;
                 showMessageModal(
-                    `Firebase is blocking this app's domain. You must add this domain to your Firebase project's "Authorized domains" list.<br><br><strong class="text-text-primary">Domain to add:</strong><br><code class="bg-bg-card-secondary text-accent-primary px-2 py-1 rounded-md block mt-2">${currentDomain}</code><br><br><strong>How to fix:</strong><B R>1. Go to your Firebase Console<br>2. Go to Authentication > Settings<br>3. Click 'Authorized domains'<br>4. Click 'Add domain' and paste the code above.`, 
+                    `Firebase is blocking this app's domain. You must add this domain to your Firebase project's "Authorized domains" list.<br><br><strong class="text-text-primary">Domain to add:</strong><br><code class="bg-bg-card-secondary text-accent-primary px-2 py-1 rounded-md block mt-2">${currentDomain}</code><br><pre>How to fix:\n1. Go to your Firebase Console\n2. Go to Authentication > Settings\n3. Click 'Authorized domains'\n4. Click 'Add domain' and paste the code above.</pre>`, 
                     "Sign-In Failed (Action Required)"
                 );
             } else {
@@ -1554,14 +1840,26 @@ document.addEventListener("DOMContentLoaded", () => {
     createCircleButton.addEventListener("click", showCreateCircleModal);
     joinCircleButton.addEventListener("click", showJoinCircleModal);
     editAliasButton.addEventListener("click", showAliasModal);
+    
+    // NEW: Deadline Countdown Listener
+    editDeadlineButton.addEventListener("click", async () => {
+        if (!currentUserId) return; // Add guard clause
+        const userRef = doc(db, `users/${currentUserId}`);
+        const userSnap = await getDoc(userRef);
+        const deadline = userSnap.data()?.deadline ? userSnap.data().deadline.toDate() : null;
+        showDeadlineModal(deadline);
+    });
 
-    // NEW: "The Locker" Listener
+    // "The Locker" Listener
     viewArchiveButton.addEventListener("click", showArchivedGoalsModal);
     
-    // NEW: "Carcosa" Focus Mode Listener
+    // "Carcosa" Focus Mode Listener
     focusModeButton.addEventListener("click", () => {
         document.body.classList.toggle('focus-mode-active');
     });
+
+    // "The Thread" (Stats) Listener
+    viewStatsButton.addEventListener("click", showStatsModal);
 
     // Attach Pomodoro Listeners
     pomodoroButton.addEventListener("click", () => setTimer('pomodoro'));
@@ -1574,7 +1872,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Attach YouTube Player Listener
     ytLoadButton.addEventListener("click", handleLoadYoutubeVideo);
 
-    // NEW: Attach Theme Selector Listener
+    // Attach Theme Selector Listener
     themeSelector.addEventListener('change', (e) => {
         setTheme(e.target.value);
     });

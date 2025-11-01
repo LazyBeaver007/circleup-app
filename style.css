@@ -34,6 +34,13 @@ html.theme-light {
     --reaction-active-bg: #06b6d4; /* cyan-500 */
     --reaction-active-border: #06b6d4; /* cyan-500 */
     --reaction-active-text: #ffffff; /* white */
+
+    /* Heatmap Colors (GitHub) */
+    --heatmap-level-0: #ebedf0; /* gray-200 */
+    --heatmap-level-1: #c6e48b;
+    --heatmap-level-2: #7bc96f;
+    --heatmap-level-3: #239a3b;
+    --heatmap-level-4: #196127;
 }
 
 /* Theme 2: Rosé Pine */
@@ -68,6 +75,13 @@ html.theme-rose {
     --reaction-active-bg: #eb6f92; /* love */
     --reaction-active-border: #eb6f92;
     --reaction-active-text: #191724;
+
+    /* Heatmap Colors (Rosé) */
+    --heatmap-level-0: #26233a; /* subtle */
+    --heatmap-level-1: #31748f; /* pine */
+    --heatmap-level-2: #9ccfd8; /* foam */
+    --heatmap-level-3: #f6c177; /* gold */
+    --heatmap-level-4: #eb6f92; /* love */
 }
 
 /* Theme 3: True Detective (Gritty) */
@@ -102,6 +116,13 @@ html.theme-true-detective {
     --reaction-active-bg: #b09144; /* gold */
     --reaction-active-border: #b09144;
     --reaction-active-text: #1e2220;
+
+    /* Heatmap Colors (Gritty) */
+    --heatmap-level-0: #3a413c;
+    --heatmap-level-1: #5e665b;
+    --heatmap-level-2: #8f8f7b;
+    --heatmap-level-3: #b09144;
+    --heatmap-level-4: #c2c2a3;
 }
 
 /* Theme 4: Cyberpunk (Night City) */
@@ -110,18 +131,18 @@ html.theme-cyberpunk {
     --bg-card: #14141c; /* Very dark blue */
     --bg-card-secondary: #2a2a3a; /* Dark purple/grey */
     --bg-hover: #3a3a4c;
-    --border-color: #f700ff; /* Neon magenta */
+    --border-color: #f70d0d; /* Neon magenta */
 
     --text-primary: #f0f0f0; /* Near white */
     --text-secondary: #a0a0b0; /* Light grey */
     --text-muted: #6a6a7c;
     --text-inverted: #0a0a0f;
 
-    --accent-primary: #00f0ff; /* Neon cyan */
+    --accent-primary: #ff0000; /* Neon cyan */
     --accent-primary-hover: #33f8ff;
     --accent-primary-text: #0a0a0f;
     
-    --accent-secondary: #f7ff00; /* Neon yellow */
+    --accent-secondary: #00ff6e; /* Neon yellow */
     --accent-secondary-hover: #faff33;
     --accent-secondary-text: #0a0a0f;
     
@@ -136,7 +157,15 @@ html.theme-cyberpunk {
     --reaction-active-bg: #f7ff00; /* yellow */
     --reaction-active-border: #f7ff00;
     --reaction-active-text: #0a0a0f;
+
+    /* Heatmap Colors (Neon) */
+    --heatmap-level-0: #2a2a3a;
+    --heatmap-level-1: #6a6a7c;
+    --heatmap-level-2: #ff0000; /* magenta */
+    --heatmap-level-3: #00f0ff; /* cyan */
+    --heatmap-level-4: #f7ff00; /* yellow */
 }
+
 
 /* --------------------------------------------------- */
 /* GLOBAL STYLES (Using Variables)
@@ -385,14 +414,47 @@ html.theme-cyberpunk .progress-bar-orange { background-color: #f700ff; } /* mage
     background-color: var(--bg-hover);
 }
 
-/* NEW: "Carcosa" Focus Mode */
+/* "Carcosa" Focus Mode */
 body.focus-mode-active #left-column,
 body.focus-mode-active #right-column {
     opacity: 0.1;
     pointer-events: none;
 }
-body.focus-mode-active #middle-column {
-    /* (Optional) we could scale it up */
-    /* transform: scale(1.05); */
+
+/* NEW: Heatmap Calendar Styles */
+.heatmap-container {
+    overflow-x: auto;
+    padding: 10px 0;
+}
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(53, 11px); /* 53 weeks */
+    grid-template-rows: repeat(7, 11px); /* 7 days */
+    grid-auto-flow: column;
+    gap: 3px;
+}
+.heatmap-day {
+    width: 11px;
+    height: 11px;
+    background-color: var(--heatmap-level-0);
+    border-radius: 2px;
+}
+.heatmap-day.level-1 { background-color: var(--heatmap-level-1); }
+.heatmap-day.level-2 { background-color: var(--heatmap-level-2); }
+.heatmap-day.level-3 { background-color: var(--heatmap-level-3); }
+.heatmap-day.level-4 { background-color: var(--heatmap-level-4); }
+
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 10px;
+}
+.heatmap-legend-box {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
 }
 
